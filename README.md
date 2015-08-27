@@ -7,7 +7,7 @@
 This Play! plugin enables users to read from and write one or more [mongo-caching](https://github.com/hmrc/mongo-caching) microservice instances. Two different types of mongo-caching are available:
 
 * ```SessionCache``` - used for session caching e.g. storing HTTP forms between multiple requests
-* ```ShortLivedCache``` - used for short-term caching with encryption (requires http-caching-client 2.1.0+)
+* ```ShortLivedCache``` - used for short-term caching with encryption
 
 For example, the HMRC Multi Digital Tax Platform has a SessionCache instance called Keystore, and a ShortLivedCache called Save4Later.
 
@@ -39,10 +39,14 @@ A mongo-caching instance is a cache accessible via REST calls. To identify the s
 
 ### Using a SessionCache
 
-Import the client
+Implement the client
 
 ```scala
     import uk.gov.hmrc.http.cache.client.SessionCache
+
+    object SessionCache extends SessionCache {
+        // implement the client
+    }
 ```
 
 Cache the session's data use ```SessionCache#cache```. 
@@ -75,10 +79,19 @@ If the `key` is not found in the cache, None is returned
 
 ### Using a ShortLivedCache
 
-Import the client
+Implement the client
 
 ```scala
-    import uk.gov.hmrc.http.cache.client.ShortLivedCache
+    import uk.gov.hmrc.http.cache.client.{ShortLivedCache,ShortLivedHttpCaching}
+
+    object ShortLivedHttpCaching extends ShortLivedHttpCaching {
+      // implement the client
+    }
+
+    object ShortLivedCache extends ShortLivedCache {
+      override implicit lazy val crypto = ApplicationCrypto.JsonCrypto
+      override lazy val shortLiveCache = ShortLivedHttpCaching
+    }
 ```
 
 For ```ShortLivedCache``` examples see the above examples for ```SessionCache```, with the only API difference being that the functions require a ```cacheId``` in the method signatures.
