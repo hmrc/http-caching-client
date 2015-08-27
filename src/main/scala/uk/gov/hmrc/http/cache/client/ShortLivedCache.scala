@@ -18,23 +18,19 @@ package uk.gov.hmrc.http.cache.client
 
 import play.api.libs.json._
 import uk.gov.hmrc.crypto.json.{JsonDecryptor, JsonEncryptor}
-import uk.gov.hmrc.crypto.{ApplicationCrypto, CompositeSymmetricCrypto, Protected}
+import uk.gov.hmrc.crypto.{CompositeSymmetricCrypto, Protected}
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HttpResponse
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import scala.concurrent.Future
 
 
-object ShortLivedCache extends ShortLivedCache {
-  override val shortLiveCache = ShortLivedHttpCaching
-  override implicit val crypto = ApplicationCrypto.JsonCrypto
-}
-
 trait ShortLivedCache extends CacheUtil {
 
-  val shortLiveCache: ShortLivedHttpCaching
   implicit val crypto: CompositeSymmetricCrypto
+
+  def shortLiveCache: ShortLivedHttpCaching
 
   def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A]): Future[CacheMap] = {
     val protectd = Protected(body)

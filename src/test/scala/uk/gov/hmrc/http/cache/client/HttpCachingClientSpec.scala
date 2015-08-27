@@ -1,11 +1,29 @@
+/*
+ * Copyright 2015 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.http.cache.client
 
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json._
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
-import uk.gov.hmrc.play.http.logging.SessionId
 import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.http.logging.SessionId
 
 import scala.concurrent.Future
 
@@ -23,9 +41,10 @@ case class FormOnPage1(field1: String, field2: Boolean)
 case class FormOnPage2(field1: Int)
 
 
-class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
+class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures {
 
   implicit val hc = new HeaderCarrier(sessionId = Some(SessionId("ksc-session-id")))
+  implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
 
   val source = "aSource"
 
@@ -38,7 +57,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
       val data = CacheMap(id, Map("form1" -> new JsObject(Seq("field1" -> JsString("value1")))))
       val client = SessionCachingForTest(data)
 
-      val map = await(client.fetch())
+      val map = client.fetch().futureValue
 
       map should be (defined)
 
@@ -47,7 +66,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
     "return None if the map is not found" in {
 
       val client = SessionCachingForTest(new NotFoundException("not found"))
-      await(client.fetch()) shouldBe None
+      client.fetch().futureValue shouldBe None
     }
 
     "store an entry" in {
@@ -55,7 +74,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
       val data = Field1("value1")
 
       val client = SessionCachingForTest(id)
-      val map = await(client.cache[Field1]("form1", data))
+      val map = client.cache[Field1]("form1", data).futureValue
 
       map.data shouldBe expectedResult
     }
@@ -70,12 +89,12 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
       val data = CacheMap(id, Map("form1" -> new JsObject(Seq("field1" -> JsString("value1")))))
       val client = SessionCachingForTest(data)
 
-      val map = await(client.fetch())
+      val map = client.fetch().futureValue
       map should be (defined)
 
       client.remove()
 
-      val deletedMap = await(client.fetch())
+      val deletedMap = client.fetch().futureValue
       deletedMap.get.data should be (empty)
     }
   }
@@ -93,7 +112,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
 
       val client = SessionCachingForTest(data)
 
-      val entry = await(client.fetch()).get
+      val entry = client.fetch().futureValue.get
       val f1o = entry.getEntry[Field1]("form1")
       f1o should not be empty
       f1o.get shouldBe Field1("value1")
@@ -109,7 +128,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
 
       val client = SessionCachingForTest(data)
 
-      val f1o = await(client.fetchAndGetEntry("form1"))
+      val f1o = client.fetchAndGetEntry("form1").futureValue
       f1o should not be empty
       f1o.get shouldBe Field1("value1")
     }
@@ -122,7 +141,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
 
       val client = SessionCachingForTest(data)
 
-      val entry = await(client.fetch()).get
+      val entry = client.fetch().futureValue.get
       val f1o = entry.getEntry[Field1]("form2")
       f1o shouldBe empty
     }
@@ -135,7 +154,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
 
       val client = SessionCachingForTest(data)
 
-      val entry = await(client.fetch()).get
+      val entry = client.fetch().futureValue.get
 
       intercept[KeyStoreEntryValidationException] {
         entry.getEntry[Field1]("form1")
@@ -154,7 +173,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
       val data = CacheMap(id, Map("form1" -> new JsObject(Seq("field1" -> JsString("value1")))))
       val client = ShortLivedCachingForTest(data)
 
-      val map = await(client.fetch(id))
+      val map = client.fetch(id).futureValue
 
       map should be (defined)
 
@@ -163,7 +182,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
     "return None if the map is not found" in {
 
       val client = ShortLivedCachingForTest(new NotFoundException("not found"))
-      await(client.fetch(id)) shouldBe None
+      client.fetch(id).futureValue shouldBe None
     }
 
     "store an entry" in {
@@ -171,7 +190,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
       val data = Field1("value1")
 
       val client = ShortLivedCachingForTest(id, "form1")
-      val map = await(client.cache[Field1](id, "form1", data))
+      val map = client.cache[Field1](id, "form1", data).futureValue
 
       map.data shouldBe expectedResult
     }
@@ -181,9 +200,7 @@ class HttpCachingClientSpec extends UnitSpec with WithFakeApplication {
 }
 
 trait MockedSessionCache extends SessionCache with MockitoSugar {
-  override val httpGet: HttpGet = mock[HttpGet]
-  override val httpDelete: HttpDelete = mock[HttpDelete]
-  override val httpPut: HttpPut = mock[HttpPut]
+  override val http = mock[HttpGet with HttpPut with HttpDelete]
 }
 
 object SessionCachingForTest {
@@ -229,7 +246,7 @@ object ShortLivedCachingForTest {
 
   private val source = "aSource"
 
-  def apply(map: CacheMap) = new ShortLivedHttpCaching {
+  def apply(map: CacheMap) = new ShortLivedHttpCaching with MockedSessionCache {
     override lazy val defaultSource: String = source
     override lazy val baseUri = "https://on-right"
     override lazy val domain: String = "save4later"
@@ -237,14 +254,16 @@ object ShortLivedCachingForTest {
     override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = Future.successful(map)
     override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T] ): Future[CacheMap] = ???
   }
-  def apply(e: Exception) = new ShortLivedHttpCaching {
+
+  def apply(e: Exception) = new ShortLivedHttpCaching with MockedSessionCache {
     override lazy val defaultSource: String = source
     override lazy val baseUri = "https://on-right"
     override lazy val domain: String = "save4later"
 
     override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = Future.failed(e)
   }
-  def apply(id : String, key : String) = new ShortLivedHttpCaching {
+
+  def apply(id : String, key : String) = new ShortLivedHttpCaching with MockedSessionCache {
     override lazy val defaultSource: String = source
     override lazy val baseUri = "https://on-right"
     override lazy val domain: String = "save4later"

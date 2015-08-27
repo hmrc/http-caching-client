@@ -1,20 +1,38 @@
+/*
+ * Copyright 2015 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.http.cache.client
 
+import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads, Writes}
 import uk.gov.hmrc.crypto._
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.play.http.{HttpDelete, HttpPut, HttpGet}
 
 import scala.collection.mutable
 import scala.concurrent.Future
 
 
-class ShortLivedCacheSpec extends UnitSpec with ScalaFutures with WithFakeApplication {
+class ShortLivedCacheSpec extends WordSpecLike with Matchers with ScalaFutures {
 
   implicit val hc = HeaderCarrier()
-
+  implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
 
   "ShortLivedCacheWithCrpto" should {
     import uk.gov.hmrc.http.cache.client.FormOnPage3.formats
@@ -27,37 +45,37 @@ class ShortLivedCacheSpec extends UnitSpec with ScalaFutures with WithFakeApplic
     }
 
     "encrypt and cache a given data" in {
-      val cm = await(slcCrypto.cache("save4later", "form1", FormOnPage3("me", true))(hc, FormOnPage3.formats))
-      val cm2 = await(slcCrypto.fetch("save4later"))
+      val cm = slcCrypto.cache("save4later", "form1", FormOnPage3("me", true))(hc, FormOnPage3.formats).futureValue
+      val cm2 = slcCrypto.fetch("save4later").futureValue
       cm2 should be(Some(cm))
     }
 
     "encrypt the data and fetch by key" in {
-      await(slcCrypto.cache("save4later", "form2", formOnPage))
-      val form = await(slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form2")(hc, FormOnPage3.formats))
+      slcCrypto.cache("save4later", "form2", formOnPage).futureValue
+      val form = slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form2")(hc, FormOnPage3.formats).futureValue
       form should be(Some(formOnPage))
     }
 
     "return decrypted cache entry" in {
-      val cm = await(slcCrypto.cache("save4later", "form3", formOnPage))
+      val cm = slcCrypto.cache("save4later", "form3", formOnPage).futureValue
       val form = cm.getEntry[FormOnPage3]("form3")
       form should be(Some(formOnPage))
     }
 
     "not return any uncached entry when the key is missing" in {
-      val cm = await(slcCrypto.cache("save4later", "form4", formOnPage))
+      val cm = slcCrypto.cache("save4later", "form4", formOnPage).futureValue
       val form = cm.getEntry[FormOnPage3]("form6")
       form should be(empty)
     }
 
     "not return any uncached entry when fetched" in {
-      await(slcCrypto.cache("save4later", "form5", formOnPage))
-      val form = await(slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form7")(hc, FormOnPage3.formats))
+      slcCrypto.cache("save4later", "form5", formOnPage).futureValue
+      val form = slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form7")(hc, FormOnPage3.formats).futureValue
       form should be(empty)
     }
 
     "fetch non existing cache" in {
-      val emptyCache = await(slcCrypto.fetch("non-existing-item"))
+      val emptyCache = slcCrypto.fetch("non-existing-item").futureValue
       emptyCache should be(empty)
     }
 
@@ -69,8 +87,8 @@ class ShortLivedCacheSpec extends UnitSpec with ScalaFutures with WithFakeApplic
 
     "capture crypto exception during getEntry" in {
       intercept[CachingException] {
-        await(slcCrypto.cache("exception-cache-id", "exception-key", formOnPage))
-        val cm = await(slcCrypto.fetch("exception-cache-id"))
+        slcCrypto.cache("exception-cache-id", "exception-key", formOnPage).futureValue
+        val cm = slcCrypto.fetch("exception-cache-id").futureValue
         cm.map(f => f.getEntry("exception-key"))
       }
     }
@@ -143,4 +161,6 @@ object TestShortLiveHttpCaching extends ShortLivedHttpCaching {
           e
         }
       }
+
+  override def http: HttpGet with HttpPut with HttpDelete = ???
 }
