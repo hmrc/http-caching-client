@@ -18,6 +18,7 @@ package uk.gov.hmrc.http.cache.client
 
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json._
 import uk.gov.hmrc.play.audit.http.HeaderCarrier
@@ -43,6 +44,7 @@ case class FormOnPage2(field1: Int)
 class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures {
 
   implicit val hc = new HeaderCarrier(sessionId = Some(SessionId("ksc-session-id")))
+  implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
 
   val source = "aSource"
 

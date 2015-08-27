@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.http.cache.client
 
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
 import play.api.Logger
@@ -31,7 +32,7 @@ import scala.concurrent.Future
 class ShortLivedCacheSpec extends WordSpecLike with Matchers with ScalaFutures {
 
   implicit val hc = HeaderCarrier()
-
+  implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
 
   "ShortLivedCacheWithCrpto" should {
     import uk.gov.hmrc.http.cache.client.FormOnPage3.formats
