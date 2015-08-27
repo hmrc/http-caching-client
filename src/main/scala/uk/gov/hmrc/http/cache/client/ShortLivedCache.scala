@@ -28,8 +28,9 @@ import scala.concurrent.Future
 
 trait ShortLivedCache extends CacheUtil {
 
-  val shortLiveCache: ShortLivedHttpCaching
   implicit val crypto: CompositeSymmetricCrypto
+
+  def shortLiveCache: ShortLivedHttpCaching
 
   def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A]): Future[CacheMap] = {
     val protectd = Protected(body)

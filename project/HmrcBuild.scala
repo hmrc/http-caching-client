@@ -25,7 +25,7 @@ object HmrcBuild extends Build {
 
   val appName = "http-caching-client"
 
-  val appDependencies = Dependencies.compile
+  val appDependencies = Dependencies.compile ++ Dependencies.test
 
   lazy val library = Project(appName, file("."))
     .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
@@ -51,6 +51,13 @@ object Dependencies {
     "com.typesafe.play" %% "play-datacommons" % PlayVersion.current % "provided",
     "uk.gov.hmrc" %% "json-encryption" % "1.9.0",
     "uk.gov.hmrc" %% "http-verbs" % "1.10.0"
+  )
+
+  val test = Seq(
+    "com.typesafe.play" %% "play-test" % PlayVersion.current % "test",
+    "org.scalatest" %% "scalatest" % "2.2.2" % "test",
+    "org.pegdown" % "pegdown" % "1.4.2" % "test",
+    "org.mockito" % "mockito-all" % "1.9.5" % "test"
   )
 
 }
