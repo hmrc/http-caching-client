@@ -27,7 +27,7 @@ In `/conf/play.plugins` add the reference to `HttpCachingClientPlugin`
 
 *NOTE: if 3000 is already in use choose another number*
 
-Default configuration is defined in the `/conf/reference.conf` file and can be overridden in `/conf/application.conf`
+Consumers must specify their endpoint configuration in their own configuration file.
 
 ## Using a mongo-caching instance
 
