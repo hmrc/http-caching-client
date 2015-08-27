@@ -16,4 +16,4 @@
 
 package uk.gov.hmrc.http.cache.client
 
-case class  CachingException(msg: String, throwable: Throwable) extends RuntimeException(msg, throwable)
+case class  CachingException(msg: String, throwable: Throwable) extends Exception(msg, throwable)

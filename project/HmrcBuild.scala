@@ -44,14 +44,13 @@ object HmrcBuild extends Build {
 
 object Dependencies {
 
-  import play.PlayImport._
   import play.core.PlayVersion
 
   val compile = Seq(
-    "com.typesafe.play" %% "play" % PlayVersion.current % "provided",
+    "com.typesafe.play" %% "play-json" % PlayVersion.current % "provided",
+    "com.typesafe.play" %% "play-datacommons" % PlayVersion.current % "provided",
     "uk.gov.hmrc" %% "json-encryption" % "1.9.0",
-    "uk.gov.hmrc" %% "http-verbs" % "1.10.0",
-    "uk.gov.hmrc" %% "play-config" % "1.2.0"
+    "uk.gov.hmrc" %% "http-verbs" % "1.10.0"
   )
 
 }
