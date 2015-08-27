@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/hmrc/http-caching-client.svg)](https://travis-ci.org/hmrc/http-caching-client) [ ![Download](https://api.bintray.com/packages/hmrc/releases/http-caching-client/images/download.svg) ](https://bintray.com/hmrc/releases/http-caching-client/_latestVersion)
 
-This Play! plugin enables users to easily read from and write one or more [mongo-caching](https://github.com/hmrc/mongo-caching) microservice instances. Two different types of mongo-caching are available:
+This Play! plugin enables users to read from and write one or more [mongo-caching](https://github.com/hmrc/mongo-caching) microservice instances. Two different types of mongo-caching are available:
 
 * ```SessionCache``` - used for session caching e.g. storing HTTP forms between multiple requests
 * ```ShortLivedCache``` - used for short-term caching with encryption (requires http-caching-client 2.1.0+)
