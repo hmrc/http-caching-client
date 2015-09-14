@@ -30,7 +30,7 @@ object HmrcBuild extends Build {
   lazy val library = Project(appName, file("."))
     .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
     .settings(
-      targetJvm := "jvm-1.7",
+      scalaVersion := "2.11.7",
       libraryDependencies ++= appDependencies,
       crossScalaVersions := Seq("2.11.7"),
       resolvers := Seq(
@@ -49,14 +49,14 @@ object Dependencies {
   val compile = Seq(
     "com.typesafe.play" %% "play-json" % PlayVersion.current % "provided",
     "com.typesafe.play" %% "play-datacommons" % PlayVersion.current % "provided",
-    "uk.gov.hmrc" %% "json-encryption" % "1.9.0",
+    "uk.gov.hmrc" %% "json-encryption" % "2.0.0",
     "uk.gov.hmrc" %% "http-verbs" % "1.10.0"
   )
 
   val test = Seq(
     "com.typesafe.play" %% "play-test" % PlayVersion.current % "test",
-    "org.scalatest" %% "scalatest" % "2.2.2" % "test",
-    "org.pegdown" % "pegdown" % "1.4.2" % "test",
+    "org.scalatest" %% "scalatest" % "2.2.4" % "test",
+    "org.pegdown" % "pegdown" % "1.5.0" % "test",
     "org.mockito" % "mockito-all" % "1.9.5" % "test"
   )
 
