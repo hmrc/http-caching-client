@@ -22,7 +22,7 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, Reads, Writes}
 import uk.gov.hmrc.crypto._
-import uk.gov.hmrc.play.audit.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.{HttpDelete, HttpPut, HttpGet}
 
 import scala.collection.mutable
