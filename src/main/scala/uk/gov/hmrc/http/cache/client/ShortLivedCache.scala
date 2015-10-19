@@ -19,7 +19,7 @@ package uk.gov.hmrc.http.cache.client
 import play.api.libs.json._
 import uk.gov.hmrc.crypto.json.{JsonDecryptor, JsonEncryptor}
 import uk.gov.hmrc.crypto.{CompositeSymmetricCrypto, Protected}
-import uk.gov.hmrc.play.audit.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HttpResponse
 
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
