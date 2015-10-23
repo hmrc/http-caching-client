@@ -82,7 +82,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
     "extract the sessionId from the HeaderCarrier" in {
       val data = CacheMap(id, Map.empty)
       val client = SessionCachingForTest(data)
-      client.cacheId shouldBe "sessionId"
+      client.cacheId.futureValue shouldBe "sessionId"
     }
 
     "delete an entry" in {
@@ -210,7 +210,7 @@ object SessionCachingForTest {
 
   def apply(map: CacheMap) = new MockedSessionCache {
     var cacheMap = map
-    override private[client] def cacheId(implicit hc: HeaderCarrier): String = "sessionId"
+    override private[client] def cacheId(implicit hc: HeaderCarrier) = Future.successful("sessionId")
     override lazy val baseUri = "https://on-left"
     override lazy val defaultSource: String = source
     override lazy val domain: String = "keystore"
@@ -223,7 +223,7 @@ object SessionCachingForTest {
     }
   }
   def apply(e: Exception) = new MockedSessionCache {
-    override private[client] def cacheId(implicit hc: HeaderCarrier): String = "sessionId"
+    override private[client] def cacheId(implicit hc: HeaderCarrier) = Future.successful("sessionId")
     override lazy val baseUri = "https://on-left"
     override lazy val defaultSource: String = source
     override lazy val domain: String = "keystore"
@@ -231,14 +231,14 @@ object SessionCachingForTest {
     override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = Future.failed(e)
   }
   def apply(key : String) = new MockedSessionCache {
-    override private[client] def cacheId(implicit hc: HeaderCarrier): String = "sessionId"
+    override private[client] def cacheId(implicit hc: HeaderCarrier) = Future.successful("sessionId")
     override lazy val baseUri = "https://on-left"
     override lazy val defaultSource: String = source
     override lazy val domain: String = "keystore"
 
     override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = ???
     override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T]): Future[CacheMap] =
-      Future.successful(CacheMap(cacheId, Map(key -> wts.writes(body))))
+      Future.successful(CacheMap("sessionId", Map(key -> wts.writes(body))))
   }
 }
 

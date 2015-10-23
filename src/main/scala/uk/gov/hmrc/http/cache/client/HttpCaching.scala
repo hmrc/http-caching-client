@@ -77,16 +77,34 @@ trait HttpCaching extends CachingVerbs {
  */
 trait SessionCache extends HttpCaching {
 
-  private[client] def cacheId(implicit hc: HeaderCarrier) = hc.sessionId.getOrElse(throw new Exception("Could not find sessionId in HeaderCarrier")).value
+  private val noSession = Future.failed[String](NoSessionException)
+
+  private[client] def cacheId(implicit hc: HeaderCarrier): Future[String] =
+    hc.sessionId.fold(noSession)(c => Future.successful(c.value))
 
   def cache[A](formId: String, body: A)(implicit wts: Writes[A], hc: HeaderCarrier): Future[CacheMap] =
-    cache(defaultSource, cacheId, formId, body)
+    for {
+      c <- cacheId
+      result <- cache(defaultSource, c, formId, body)
+    } yield result
 
-  def fetch()(implicit hc: HeaderCarrier): Future[Option[CacheMap]] = fetch(defaultSource, cacheId)
+  def fetch()(implicit hc: HeaderCarrier): Future[Option[CacheMap]] =
+    for {
+      c <- cacheId
+      result <- fetch(defaultSource, c)
+    } yield result
 
-  def fetchAndGetEntry[T](key: String)(implicit hc: HeaderCarrier, rds: Reads[T]): Future[Option[T]] = fetchAndGetEntry(defaultSource, cacheId, key)
+  def fetchAndGetEntry[T](key: String)(implicit hc: HeaderCarrier, rds: Reads[T]): Future[Option[T]] =
+    for {
+      c <- cacheId
+      result <- fetchAndGetEntry(defaultSource, c, key)
+    } yield result
 
-  def remove()(implicit hc: HeaderCarrier): Future[HttpResponse] = delete(buildUri(defaultSource, cacheId))
+  def remove()(implicit hc: HeaderCarrier): Future[HttpResponse] =
+    for {
+      c <- cacheId
+      result <- delete(buildUri(defaultSource, c))
+    } yield result
 }
 
 /**
