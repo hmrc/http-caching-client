@@ -54,7 +54,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
 
     "fetch a map by id" in {
 
-      val data = CacheMap(id, Map("form1" -> new JsObject(Seq("field1" -> JsString("value1")))))
+      val data = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
       val client = SessionCachingForTest(data)
 
       val map = client.fetch().futureValue
@@ -70,7 +70,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
     }
 
     "store an entry" in {
-      val expectedResult = Map(id -> new JsObject(Seq("field1" -> JsString("value1"))))
+      val expectedResult = Map(id -> new JsObject(Map("field1" -> JsString("value1"))))
       val data = Field1("value1")
 
       val client = SessionCachingForTest(id)
@@ -86,7 +86,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
     }
 
     "delete an entry" in {
-      val data = CacheMap(id, Map("form1" -> new JsObject(Seq("field1" -> JsString("value1")))))
+      val data = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
       val client = SessionCachingForTest(data)
 
       val map = client.fetch().futureValue
@@ -105,8 +105,8 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
 
     "read entries into case classes" in {
       val data = CacheMap(id, Map(
-        "form1" -> new JsObject(Seq("field1" -> JsString("value1"))),
-        "form2" -> new JsObject(Seq("field2" -> JsBoolean(true)))))
+        "form1" -> new JsObject(Map("field1" -> JsString("value1"))),
+        "form2" -> new JsObject(Map("field2" -> JsBoolean(true)))))
 
       implicit val formats = Json.format[Field1]
 
@@ -121,8 +121,8 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
     "fetch and retrieve keyed data" in {
 
       val data = CacheMap(id, Map(
-        "form1" -> new JsObject(Seq("field1" -> JsString("value1"))),
-        "form2" -> new JsObject(Seq("field2" -> JsBoolean(true)))))
+        "form1" -> new JsObject(Map("field1" -> JsString("value1"))),
+        "form2" -> new JsObject(Map("field2" -> JsBoolean(true)))))
 
       implicit val formats = Json.format[Field1]
 
@@ -135,7 +135,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
 
     "return None if the entry is not found" in {
       val data = CacheMap(id, Map(
-        "form1" -> new JsObject(Seq("field1" -> JsString("value1")))))
+        "form1" -> new JsObject(Map("field1" -> JsString("value1")))))
 
       implicit val formats = Json.format[Field1]
 
@@ -148,7 +148,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
 
     "return an exception for conversions errors" in {
       val data = CacheMap(id, Map(
-        "form1" -> new JsObject(Seq("field1" -> JsBoolean(true)))))
+        "form1" -> new JsObject(Map("field1" -> JsBoolean(true)))))
 
       implicit val formats = Json.format[Field1]
 
@@ -170,7 +170,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
 
     "fetch a map by id" in {
 
-      val data = CacheMap(id, Map("form1" -> new JsObject(Seq("field1" -> JsString("value1")))))
+      val data = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
       val client = ShortLivedCachingForTest(data)
 
       val map = client.fetch(id).futureValue
@@ -186,7 +186,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
     }
 
     "store an entry" in {
-      val expectedResult = Map("form1" -> new JsObject(Seq("field1" -> JsString("value1"))))
+      val expectedResult = Map("form1" -> new JsObject(Map("field1" -> JsString("value1"))))
       val data = Field1("value1")
 
       val client = ShortLivedCachingForTest(id, "form1")
