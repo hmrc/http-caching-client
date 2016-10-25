@@ -17,18 +17,6 @@ For example, the HMRC Multi Digital Tax Platform has a SessionCache instance cal
 libraryDependencies += "uk.gov.hmrc" %% "http-caching-client" % "[INSERT_VERSION]"
 ```
 
-## Configuration
-
-In `/conf/play.plugins` add the reference to `HttpCachingClientPlugin`
-
-```scala
-    3000:uk.gov.hmrc.http.cache.client.HttpCachingClientPlugin
-```
-
-*NOTE: if 3000 is already in use choose another number*
-
-Consumers must specify their endpoint configuration in their own configuration file.
-
 ## Using a mongo-caching instance
 
 A mongo-caching instance is a cache accessible via REST calls. To identify the single piece of data that is cached three keys are used:
