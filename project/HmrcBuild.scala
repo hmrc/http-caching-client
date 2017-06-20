@@ -50,7 +50,7 @@ object Dependencies {
     "com.typesafe.play" %% "play-json" % PlayVersion.current % "provided",
     "com.typesafe.play" %% "play-datacommons" % PlayVersion.current % "provided",
     "uk.gov.hmrc" %% "json-encryption" % "3.2.0",
-    "uk.gov.hmrc" %% "http-verbs" % "6.3.0"
+    "uk.gov.hmrc" %% "http-verbs" % "6.4.0"
   )
 
   val test = Seq(
