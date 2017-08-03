@@ -19,7 +19,6 @@ import sbt._
 
 object HmrcBuild extends Build {
 
-  import uk.gov.hmrc.DefaultBuildSettings._
   import uk.gov.hmrc.SbtAutoBuildPlugin
   import uk.gov.hmrc.versioning.SbtGitVersioning
 
@@ -44,17 +43,13 @@ object HmrcBuild extends Build {
 
 object Dependencies {
 
-  import play.core.PlayVersion
-
   val compile = Seq(
-    "com.typesafe.play" %% "play-json" % PlayVersion.current % "provided",
-    "com.typesafe.play" %% "play-datacommons" % PlayVersion.current % "provided",
+    "com.typesafe.play" %% "play-json" % "2.5.15" % "provided",
     "uk.gov.hmrc" %% "json-encryption" % "3.2.0",
-    "uk.gov.hmrc" %% "http-verbs" % "6.4.0"
+    "uk.gov.hmrc" %% "http-core" % "100.0-SNAPSHOT"
   )
 
   val test = Seq(
-    "com.typesafe.play" %% "play-test" % PlayVersion.current % "test",
     "org.scalatest" %% "scalatest" % "2.2.4" % "test",
     "org.pegdown" % "pegdown" % "1.5.0" % "test",
     "org.mockito" % "mockito-all" % "1.9.5" % "test"
