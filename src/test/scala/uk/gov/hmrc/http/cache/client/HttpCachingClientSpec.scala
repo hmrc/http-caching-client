@@ -22,9 +22,9 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json._
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.SessionId
 
 import scala.concurrent.{ExecutionContext, Future}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Field1(field1: String)

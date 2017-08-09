@@ -46,7 +46,7 @@ object Dependencies {
   val compile = Seq(
     "com.typesafe.play" %% "play-json" % "2.5.15" % "provided",
     "uk.gov.hmrc" %% "json-encryption" % "3.2.0",
-    "uk.gov.hmrc" %% "http-core" % "100.0-SNAPSHOT"
+    "uk.gov.hmrc" %% "http-core" % "0.5.0"
   )
 
   val test = Seq(
