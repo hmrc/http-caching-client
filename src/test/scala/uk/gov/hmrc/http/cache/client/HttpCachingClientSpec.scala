@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpecLike}
 import play.api.libs.json._
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.logging.SessionId
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.SessionId
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Field1(field1: String)
 
@@ -200,7 +200,7 @@ class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures
 }
 
 trait MockedSessionCache extends SessionCache with MockitoSugar {
-  override val http = mock[HttpGet with HttpPut with HttpDelete]
+  override val http = mock[CoreGet with CorePut with CoreDelete]
 }
 
 object SessionCachingForTest {
@@ -215,9 +215,9 @@ object SessionCachingForTest {
     override lazy val defaultSource: String = source
     override lazy val domain: String = "keystore"
 
-    override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = Future.successful(cacheMap)
-    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T]): Future[CacheMap] = ???
-    override def remove()(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = Future.successful(cacheMap)
+    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] = ???
+    override def remove()(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = {
       cacheMap = CacheMap(map.id, Map.empty)
       Future.successful(HttpResponse(200))
     }
@@ -228,7 +228,7 @@ object SessionCachingForTest {
     override lazy val defaultSource: String = source
     override lazy val domain: String = "keystore"
 
-    override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = Future.failed(e)
+    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = Future.failed(e)
   }
   def apply(key : String) = new MockedSessionCache {
     override private[client] def cacheId(implicit hc: HeaderCarrier) = Future.successful("sessionId")
@@ -236,8 +236,8 @@ object SessionCachingForTest {
     override lazy val defaultSource: String = source
     override lazy val domain: String = "keystore"
 
-    override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = ???
-    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T]): Future[CacheMap] =
+    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = ???
+    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
       Future.successful(CacheMap("sessionId", Map(key -> wts.writes(body))))
   }
 }
@@ -251,8 +251,8 @@ object ShortLivedCachingForTest {
     override lazy val baseUri = "https://on-right"
     override lazy val domain: String = "save4later"
 
-    override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = Future.successful(map)
-    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T] ): Future[CacheMap] = ???
+    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = Future.successful(map)
+    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] = ???
   }
 
   def apply(e: Exception) = new ShortLivedHttpCaching with MockedSessionCache {
@@ -260,7 +260,7 @@ object ShortLivedCachingForTest {
     override lazy val baseUri = "https://on-right"
     override lazy val domain: String = "save4later"
 
-    override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = Future.failed(e)
+    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = Future.failed(e)
   }
 
   def apply(id : String, key : String) = new ShortLivedHttpCaching with MockedSessionCache {
@@ -268,8 +268,8 @@ object ShortLivedCachingForTest {
     override lazy val baseUri = "https://on-right"
     override lazy val domain: String = "save4later"
 
-    override def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = ???
-    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T] ): Future[CacheMap] =
+    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = ???
+    override def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
       Future.successful(CacheMap(id, Map(key -> wts.writes(body))))
   }
 }

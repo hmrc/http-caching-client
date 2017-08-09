@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,9 @@ package uk.gov.hmrc.http.cache.client
 
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.http._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 case class CacheMap(id: String, data: Map[String, JsValue]) {
@@ -39,14 +37,14 @@ object CacheMap {
 }
 
 trait CachingVerbs {
-  def http : HttpGet with HttpPut with HttpDelete
+  def http : CoreGet with CorePut with CoreDelete
 
-  def get(uri: String)(implicit hc: HeaderCarrier): Future[CacheMap] = http.GET[CacheMap](uri)
+  def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = http.GET[CacheMap](uri)
 
-  def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T]): Future[CacheMap] =
+  def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
     http.PUT[T, CacheMap](uri, body)
 
-  def delete(uri: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = http.DELETE(uri)
+  def delete(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = http.DELETE(uri)
 
 }
 
@@ -56,17 +54,17 @@ trait HttpCaching extends CachingVerbs {
   def baseUri: String
   def domain: String
 
-  def cache[A](source: String, cacheId: String, formId: String, body: A)(implicit wts: Writes[A], hc: HeaderCarrier): Future[CacheMap] = {
+  def cache[A](source: String, cacheId: String, formId: String, body: A)(implicit wts: Writes[A], hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = {
     put[A](buildUri(source, cacheId) + s"/data/$formId", body)
   }
 
-  def fetch(source: String, cacheId: String)(implicit hc: HeaderCarrier): Future[Option[CacheMap]] = {
+  def fetch(source: String, cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] = {
     get(buildUri(source, cacheId)).map(Some(_)).recover {
       case e: NotFoundException => None
     }
   }
 
-  def fetchAndGetEntry[T](source: String, cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T]): Future[Option[T]] =
+  def fetchAndGetEntry[T](source: String, cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
     fetch(source, cacheId).map(_.flatMap(_.getEntry[T](key)))
 
   protected def buildUri(source: String, id: String): String = s"$baseUri/$domain/$source/$id"
@@ -82,25 +80,25 @@ trait SessionCache extends HttpCaching {
   private[client] def cacheId(implicit hc: HeaderCarrier): Future[String] =
     hc.sessionId.fold(noSession)(c => Future.successful(c.value))
 
-  def cache[A](formId: String, body: A)(implicit wts: Writes[A], hc: HeaderCarrier): Future[CacheMap] =
+  def cache[A](formId: String, body: A)(implicit wts: Writes[A], hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
     for {
       c <- cacheId
       result <- cache(defaultSource, c, formId, body)
     } yield result
 
-  def fetch()(implicit hc: HeaderCarrier): Future[Option[CacheMap]] =
+  def fetch()(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] =
     for {
       c <- cacheId
       result <- fetch(defaultSource, c)
     } yield result
 
-  def fetchAndGetEntry[T](key: String)(implicit hc: HeaderCarrier, rds: Reads[T]): Future[Option[T]] =
+  def fetchAndGetEntry[T](key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
     for {
       c <- cacheId
       result <- fetchAndGetEntry(defaultSource, c, key)
     } yield result
 
-  def remove()(implicit hc: HeaderCarrier): Future[HttpResponse] =
+  def remove()(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
     for {
       c <- cacheId
       result <- delete(buildUri(defaultSource, c))
@@ -112,16 +110,16 @@ trait SessionCache extends HttpCaching {
  */
 trait ShortLivedHttpCaching extends HttpCaching {
 
-  def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A]): Future[CacheMap] =
+  def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A], executionContext: ExecutionContext): Future[CacheMap] =
     cache(defaultSource, cacheId, formId, body)
 
-  def fetch(cacheId: String)(implicit hc: HeaderCarrier): Future[Option[CacheMap]] =
+  def fetch(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] =
     fetch(defaultSource, cacheId)
 
-  def fetchAndGetEntry[T](cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T]): Future[Option[T]] =
+  def fetchAndGetEntry[T](cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
     fetchAndGetEntry(defaultSource, cacheId, key)
 
-  def remove(cacheId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = delete(buildUri(defaultSource, cacheId))
+  def remove(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = delete(buildUri(defaultSource, cacheId))
 }
 
 

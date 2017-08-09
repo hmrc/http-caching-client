@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +19,20 @@ package uk.gov.hmrc.http.cache.client
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
-import play.api.Logger
+import org.slf4j.{Logger, LoggerFactory}
 import play.api.libs.json.{JsValue, Json, Reads, Writes}
 import uk.gov.hmrc.crypto._
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.{HttpDelete, HttpPut, HttpGet}
+import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePut, HeaderCarrier}
 
 import scala.collection.mutable
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class ShortLivedCacheSpec extends WordSpecLike with Matchers with ScalaFutures {
 
   implicit val hc = HeaderCarrier()
   implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
+  implicit val ec = scala.concurrent.ExecutionContext.Implicits.global
 
   "ShortLivedCacheWithCrpto" should {
     import uk.gov.hmrc.http.cache.client.FormOnPage3.formats
@@ -45,14 +45,14 @@ class ShortLivedCacheSpec extends WordSpecLike with Matchers with ScalaFutures {
     }
 
     "encrypt and cache a given data" in {
-      val cm = slcCrypto.cache("save4later", "form1", FormOnPage3("me", true))(hc, FormOnPage3.formats).futureValue
+      val cm = slcCrypto.cache("save4later", "form1", FormOnPage3("me", true))(hc, FormOnPage3.formats, ec).futureValue
       val cm2 = slcCrypto.fetch("save4later").futureValue
       cm2 should be(Some(cm))
     }
 
     "encrypt the data and fetch by key" in {
       slcCrypto.cache("save4later", "form2", formOnPage).futureValue
-      val form = slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form2")(hc, FormOnPage3.formats).futureValue
+      val form = slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form2")(hc, FormOnPage3.formats, ec).futureValue
       form should be(Some(formOnPage))
     }
 
@@ -70,7 +70,7 @@ class ShortLivedCacheSpec extends WordSpecLike with Matchers with ScalaFutures {
 
     "not return any uncached entry when fetched" in {
       slcCrypto.cache("save4later", "form5", formOnPage).futureValue
-      val form = slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form7")(hc, FormOnPage3.formats).futureValue
+      val form = slcCrypto.fetchAndGetEntry[FormOnPage3]("save4later", "form7")(hc, FormOnPage3.formats, ec).futureValue
       form should be(empty)
     }
 
@@ -81,7 +81,7 @@ class ShortLivedCacheSpec extends WordSpecLike with Matchers with ScalaFutures {
 
     "capture crypto exception during fetchAndGetEntry" in {
       intercept[CachingException] {
-        slcCrypto.fetchAndGetEntry("save4later", "exception-fetch-id")(hc, FormOnPage3.formats)
+        slcCrypto.fetchAndGetEntry("save4later", "exception-fetch-id")(hc, FormOnPage3.formats, ec)
       }
     }
 
@@ -134,8 +134,9 @@ object TestShortLiveHttpCaching extends ShortLivedHttpCaching {
   override lazy val baseUri: String = "save4later"
   override lazy val domain: String = "save4later"
   val map = mutable.HashMap[String, CacheMap]()
+  val logger = LoggerFactory.getLogger(this.getClass)
 
-  override def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A]): Future[CacheMap] = {
+  override def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A], executionContext: ExecutionContext): Future[CacheMap] = {
     Future {
       val jsValue = wts.writes(body)
       val cacheMap = new TestCacheMap(cacheId, Map(formId -> jsValue))
@@ -144,12 +145,12 @@ object TestShortLiveHttpCaching extends ShortLivedHttpCaching {
     }
   }
 
-  override def fetch(cacheId: String)(implicit hc: HeaderCarrier): Future[Option[CacheMap]] = {
+  override def fetch(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] = {
     val om = map.get(cacheId)
     Future.successful(om)
   }
 
-  override def fetchAndGetEntry[T](cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T]): Future[Option[T]] =
+  override def fetchAndGetEntry[T](cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
     if (key == "exception-fetch-id") {
       throw new SecurityException("Unable to decrypt entry")
     } else
@@ -157,10 +158,10 @@ object TestShortLiveHttpCaching extends ShortLivedHttpCaching {
         val cm = map.get(cacheId)
         cm.flatMap { cm =>
           val e = cm.getEntry[T](key)
-          Logger.info(s"Fetching entry:$e from cache by key:$key with reader:$rds")
+          logger.info(s"Fetching entry:$e from cache by key:$key with reader:$rds")
           e
         }
       }
 
-  override def http: HttpGet with HttpPut with HttpDelete = ???
+  override def http: CoreGet with CorePut with CoreDelete = ???
 }

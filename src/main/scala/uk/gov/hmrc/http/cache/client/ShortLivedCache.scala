@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,9 @@ package uk.gov.hmrc.http.cache.client
 import play.api.libs.json._
 import uk.gov.hmrc.crypto.json.{JsonDecryptor, JsonEncryptor}
 import uk.gov.hmrc.crypto.{CompositeSymmetricCrypto, Protected}
-import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.http.HttpResponse
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 trait ShortLivedCache extends CacheUtil {
@@ -32,28 +30,28 @@ trait ShortLivedCache extends CacheUtil {
 
   def shortLiveCache: ShortLivedHttpCaching
 
-  def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A]): Future[CacheMap] = {
+  def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A], executionContext: ExecutionContext): Future[CacheMap] = {
     val protectd = Protected(body)
     val encryptionFormat = new JsonEncryptor()
-    val fm = shortLiveCache.cache(cacheId, formId, protectd)(hc, encryptionFormat)
+    val fm = shortLiveCache.cache(cacheId, formId, protectd)(hc, encryptionFormat, executionContext)
     fm.map(cm => new CryptoCacheMap(cm))
   }
 
-  def fetch(cacheId: String)(implicit hc: HeaderCarrier): Future[Option[CacheMap]] = {
+  def fetch(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] = {
     val fm = shortLiveCache.fetch(cacheId)
     fm.map(om => om.map(cm => new CryptoCacheMap(cm)))
   }
 
-  def fetchAndGetEntry[T](cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T]): Future[Option[T]] =
+  def fetchAndGetEntry[T](cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
     try {
       val decryptionFormat = new JsonDecryptor()
-      val encrypted: Future[Option[Protected[T]]] = shortLiveCache.fetchAndGetEntry(cacheId, key)(hc, decryptionFormat)
+      val encrypted: Future[Option[Protected[T]]] = shortLiveCache.fetchAndGetEntry(cacheId, key)(hc, decryptionFormat, executionContext)
       encrypted.map(op => convert(op))
     } catch {
       case e: SecurityException => throw CachingException(s"Failed to fetch a decrypted entry by cacheId:$cacheId and key:$key", e)
     }
 
-  def remove(cacheId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = shortLiveCache.remove(cacheId)
+  def remove(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = shortLiveCache.remove(cacheId)
 }
 
 trait CacheUtil {
