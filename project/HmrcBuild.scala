@@ -29,9 +29,7 @@ object HmrcBuild extends Build {
   lazy val library = Project(appName, file("."))
     .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning)
     .settings(
-      scalaVersion := "2.11.7",
       libraryDependencies ++= appDependencies,
-      crossScalaVersions := Seq("2.11.7"),
       resolvers := Seq(
         Resolver.bintrayRepo("hmrc", "releases"),
         Resolver.typesafeRepo("releases")
@@ -50,8 +48,8 @@ object Dependencies {
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-    "org.pegdown" % "pegdown" % "1.5.0" % "test",
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+    "org.pegdown" % "pegdown" % "1.6.0" % "test",
     "org.mockito" % "mockito-all" % "1.9.5" % "test"
   )
 

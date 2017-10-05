@@ -19,7 +19,7 @@ package uk.gov.hmrc.http.cache.client
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpecLike}
 import org.scalatest.concurrent.ScalaFutures
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.LoggerFactory
 import play.api.libs.json.{JsValue, Json, Reads, Writes}
 import uk.gov.hmrc.crypto._
 import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePut, HeaderCarrier}
