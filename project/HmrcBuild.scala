@@ -42,9 +42,8 @@ object HmrcBuild extends Build {
 object Dependencies {
 
   val compile = Seq(
-    "com.typesafe.play" %% "play-json" % "2.5.15" % "provided",
     "uk.gov.hmrc" %% "json-encryption" % "3.2.0",
-    "uk.gov.hmrc" %% "http-core" % "0.5.0"
+    "uk.gov.hmrc" %% "http-core" % "1.3.0-SNAPSHOT"
   )
 
   val test = Seq(
