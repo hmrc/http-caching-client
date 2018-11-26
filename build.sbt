@@ -6,7 +6,7 @@ val appName = "http-caching-client"
 
 val compileDependencies = Seq(
   "com.typesafe.play" %% "play-json"       % "2.5.15" % "provided",
-  "uk.gov.hmrc"       %% "json-encryption" % "3.2.0",
+  "uk.gov.hmrc"       %% "json-encryption" % "4.0.0",
   "uk.gov.hmrc"       %% "http-core"       % "0.5.0"
 )
 
@@ -19,7 +19,7 @@ val testDependencies = Seq(
 lazy val library = Project(appName, file("."))
   .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning, SbtArtifactory)
   .settings(
-    majorVersion := 7,
+    majorVersion := 8,
     makePublicallyAvailableOnBintray := true,
     libraryDependencies ++= compileDependencies ++ testDependencies,
     resolvers := Seq(
