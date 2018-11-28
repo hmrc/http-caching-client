@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,6 @@
 
 package uk.gov.hmrc.http.cache.client
 
-case class  CachingException(msg: String, throwable: Throwable) extends Exception(msg, throwable)
+case class CachingException(msg: String, throwable: Throwable) extends Exception(msg, throwable)
 
 case object NoSessionException extends Exception("Could not find sessionId in HeaderCarrier")

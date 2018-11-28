@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,14 +22,15 @@ import uk.gov.hmrc.http._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
 case class CacheMap(id: String, data: Map[String, JsValue]) {
 
-  def getEntry[T](key: String)(implicit fjs: Reads[T]): Option[T] = {
-    data.get(key).map(json => json.validate[T].fold(
-      errs => throw new KeyStoreEntryValidationException(key, json, CacheMap.getClass, errs),
-      valid => valid))
-  }
+  def getEntry[T](key: String)(implicit fjs: Reads[T]): Option[T] =
+    data
+      .get(key)
+      .map(json =>
+        json
+          .validate[T]
+          .fold(errs => throw new KeyStoreEntryValidationException(key, json, CacheMap.getClass, errs), valid => valid))
 }
 
 object CacheMap {
@@ -37,14 +38,18 @@ object CacheMap {
 }
 
 trait CachingVerbs {
-  def http : CoreGet with CorePut with CoreDelete
+  def http: CoreGet with CorePut with CoreDelete
 
-  def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = http.GET[CacheMap](uri)
+  def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
+    http.GET[CacheMap](uri)
 
-  def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
+  def put[T](
+    uri: String,
+    body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
     http.PUT[T, CacheMap](uri, body)
 
-  def delete(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = http.DELETE(uri)
+  def delete(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
+    http.DELETE(uri)
 
 }
 
@@ -54,25 +59,31 @@ trait HttpCaching extends CachingVerbs {
   def baseUri: String
   def domain: String
 
-  def cache[A](source: String, cacheId: String, formId: String, body: A)(implicit wts: Writes[A], hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] = {
+  def cache[A](source: String, cacheId: String, formId: String, body: A)(
+    implicit wts: Writes[A],
+    hc: HeaderCarrier,
+    executionContext: ExecutionContext): Future[CacheMap] =
     put[A](buildUri(source, cacheId) + s"/data/$formId", body)
-  }
 
-  def fetch(source: String, cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] = {
+  def fetch(source: String, cacheId: String)(
+    implicit hc: HeaderCarrier,
+    executionContext: ExecutionContext): Future[Option[CacheMap]] =
     get(buildUri(source, cacheId)).map(Some(_)).recover {
       case e: NotFoundException => None
     }
-  }
 
-  def fetchAndGetEntry[T](source: String, cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
+  def fetchAndGetEntry[T](source: String, cacheId: String, key: String)(
+    implicit hc: HeaderCarrier,
+    rds: Reads[T],
+    executionContext: ExecutionContext): Future[Option[T]] =
     fetch(source, cacheId).map(_.flatMap(_.getEntry[T](key)))
 
   protected def buildUri(source: String, id: String): String = s"$baseUri/$domain/$source/$id"
 }
 
 /**
- * The session based client is the default
- */
+  * The session based client is the default
+  */
 trait SessionCache extends HttpCaching {
 
   private val noSession = Future.failed[String](NoSessionException)
@@ -80,55 +91,63 @@ trait SessionCache extends HttpCaching {
   private[client] def cacheId(implicit hc: HeaderCarrier): Future[String] =
     hc.sessionId.fold(noSession)(c => Future.successful(c.value))
 
-  def cache[A](formId: String, body: A)(implicit wts: Writes[A], hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
+  def cache[A](
+    formId: String,
+    body: A)(implicit wts: Writes[A], hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
     for {
-      c <- cacheId
+      c      <- cacheId
       result <- cache(defaultSource, c, formId, body)
     } yield result
 
   def fetch()(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] =
     for {
-      c <- cacheId
+      c      <- cacheId
       result <- fetch(defaultSource, c)
     } yield result
 
-  def fetchAndGetEntry[T](key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
+  def fetchAndGetEntry[T](
+    key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
     for {
-      c <- cacheId
+      c      <- cacheId
       result <- fetchAndGetEntry(defaultSource, c, key)
     } yield result
 
   def remove()(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
     for {
-      c <- cacheId
+      c      <- cacheId
       result <- delete(buildUri(defaultSource, c))
     } yield result
 }
 
 /**
- * A cache client with a defined short lived TTL, i.e. longer than a user's browser session
- */
+  * A cache client with a defined short lived TTL, i.e. longer than a user's browser session
+  */
 trait ShortLivedHttpCaching extends HttpCaching {
 
-  def cache[A](cacheId: String, formId: String, body: A)(implicit hc: HeaderCarrier, wts: Writes[A], executionContext: ExecutionContext): Future[CacheMap] =
+  def cache[A](cacheId: String, formId: String, body: A)(
+    implicit hc: HeaderCarrier,
+    wts: Writes[A],
+    executionContext: ExecutionContext): Future[CacheMap] =
     cache(defaultSource, cacheId, formId, body)
 
   def fetch(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] =
     fetch(defaultSource, cacheId)
 
-  def fetchAndGetEntry[T](cacheId: String, key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
+  def fetchAndGetEntry[T](
+    cacheId: String,
+    key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
     fetchAndGetEntry(defaultSource, cacheId, key)
 
-  def remove(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = delete(buildUri(defaultSource, cacheId))
+  def remove(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
+    delete(buildUri(defaultSource, cacheId))
 }
 
-
 class KeyStoreEntryValidationException(
-                                        val key: String,
-                                        val invalidJson: JsValue,
-                                        val readingAs: Class[_],
-                                        val errors: Seq[(JsPath, Seq[ValidationError])]) extends Exception {
-  override def getMessage: String = {
+  val key: String,
+  val invalidJson: JsValue,
+  val readingAs: Class[_],
+  val errors: Seq[(JsPath, Seq[ValidationError])])
+    extends Exception {
+  override def getMessage: String =
     s"KeyStore entry for key '$key' was '${Json.stringify(invalidJson)}'. Attempt to convert to ${readingAs.getName} gave errors: $errors"
-  }
 }
