@@ -11,9 +11,9 @@ val compileDependencies = Seq(
 )
 
 val testDependencies = Seq(
-  "org.scalatest" %% "scalatest"   % "3.0.1" % "test",
-  "org.pegdown"   %  "pegdown"     % "1.6.0" % "test",
-  "org.mockito"   %  "mockito-all" % "1.9.5" % "test"
+  "org.scalatest" %% "scalatest"  % "3.0.1" % "test",
+  "org.pegdown"   % "pegdown"     % "1.6.0" % "test",
+  "org.mockito"   % "mockito-all" % "1.9.5" % "test"
 )
 
 lazy val library = Project(appName, file("."))

@@ -16,6 +16,6 @@
 
 package uk.gov.hmrc.http.cache.client
 
-case class  CachingException(msg: String, throwable: Throwable) extends Exception(msg, throwable)
+case class CachingException(msg: String, throwable: Throwable) extends Exception(msg, throwable)
 
 case object NoSessionException extends Exception("Could not find sessionId in HeaderCarrier")
