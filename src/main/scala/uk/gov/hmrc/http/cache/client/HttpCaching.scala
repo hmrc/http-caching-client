@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.http.cache.client
 
-import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import uk.gov.hmrc.http._
 
@@ -140,14 +139,4 @@ trait ShortLivedHttpCaching extends HttpCaching {
 
   def remove(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
     delete(buildUri(defaultSource, cacheId))
-}
-
-class KeyStoreEntryValidationException(
-  val key: String,
-  val invalidJson: JsValue,
-  val readingAs: Class[_],
-  val errors: Seq[(JsPath, Seq[ValidationError])])
-    extends Exception {
-  override def getMessage: String =
-    s"KeyStore entry for key '$key' was '${Json.stringify(invalidJson)}'. Attempt to convert to ${readingAs.getName} gave errors: $errors"
 }
