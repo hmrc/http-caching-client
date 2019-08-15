@@ -8,12 +8,12 @@ val compileDependencies = PlayCrossCompilation.dependencies(
   play25 = Seq(
     "uk.gov.hmrc"       %% "json-encryption"  % "4.4.0-play-25",
     "com.typesafe.play" %% "play-json"        % "2.5.19",
-    "uk.gov.hmrc"       %% "http-verbs"       % "9.7.0-play-25"
+    "uk.gov.hmrc"       %% "http-verbs"       % "9.8.0-play-25"
   ),
   play26 = Seq(
     "uk.gov.hmrc"       %% "json-encryption"  % "4.4.0-play-26",
     "com.typesafe.play" %% "play-json"        % "2.6.13",
-    "uk.gov.hmrc"       %% "http-verbs"       % "9.7.0-play-26"
+    "uk.gov.hmrc"       %% "http-verbs"       % "9.8.0-play-26"
   )
 )
 
