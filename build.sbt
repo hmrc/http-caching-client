@@ -8,12 +8,12 @@ val compileDependencies = PlayCrossCompilation.dependencies(
   play25 = Seq(
     "uk.gov.hmrc"       %% "json-encryption"  % "4.4.0-play-25",
     "com.typesafe.play" %% "play-json"        % "2.5.19",
-    "uk.gov.hmrc"       %% "http-verbs"       % "9.8.0-play-25"
+    "uk.gov.hmrc"       %% "http-verbs"       % "10.0.0-play-25"
   ),
   play26 = Seq(
     "uk.gov.hmrc"       %% "json-encryption"  % "4.4.0-play-26",
     "com.typesafe.play" %% "play-json"        % "2.6.13",
-    "uk.gov.hmrc"       %% "http-verbs"       % "9.8.0-play-26"
+    "uk.gov.hmrc"       %% "http-verbs"       % "10.0.0-play-26"
   )
 )
 
@@ -28,7 +28,7 @@ val testDependencies = PlayCrossCompilation.dependencies(
 lazy val library = Project(appName, file("."))
   .enablePlugins(SbtAutoBuildPlugin, SbtGitVersioning, SbtArtifactory)
   .settings(
-    majorVersion := 8,
+    majorVersion := 9,
     makePublicallyAvailableOnBintray := true,
     libraryDependencies ++= compileDependencies ++ testDependencies,
     scalaVersion := "2.11.12",
