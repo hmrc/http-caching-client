@@ -24,9 +24,9 @@ val compileDependencies = PlayCrossCompilation.dependencies(
 
 val testDependencies = PlayCrossCompilation.dependencies(
   shared = Seq(
-    "org.scalatest"        %% "scalatest"    % "3.0.5"   % "test",
-    "com.vladsch.flexmark" %  "flexmark-all" % "0.35.10" % "test",
-    "org.mockito"          %  "mockito-all"  % "1.9.5"   % "test"
+    "org.scalatest"         %% "scalatest"     % "3.1.2"   % "test",
+    "org.mockito"           %% "mockito-scala" % "1.5.11"  % "test",
+    "com.vladsch.flexmark"   % "flexmark-all"  % "0.35.10" % "test"
   )
 )
 

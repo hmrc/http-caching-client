@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.http.cache.client
 
+import org.mockito.MockitoSugar
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.SessionId
@@ -40,7 +41,7 @@ object FormOnPage1 {
 case class FormOnPage1(field1: String, field2: Boolean)
 case class FormOnPage2(field1: Int)
 
-class HttpCachingClientSpec extends WordSpecLike with Matchers with ScalaFutures {
+class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
   implicit val hc              = new HeaderCarrier(sessionId = Some(SessionId("ksc-session-id")))
   implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
