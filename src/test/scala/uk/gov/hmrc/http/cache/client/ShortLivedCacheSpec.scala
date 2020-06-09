@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,9 @@
 package uk.gov.hmrc.http.cache.client
 
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.wordspec.AnyWordSpecLike
 import org.slf4j.LoggerFactory
 import play.api.libs.json.{JsValue, Json, Reads, Writes}
 import uk.gov.hmrc.crypto._
@@ -28,7 +29,7 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ShortLivedCacheSpec extends WordSpecLike with Matchers with ScalaFutures {
+class ShortLivedCacheSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
 
   implicit val hc              = HeaderCarrier()

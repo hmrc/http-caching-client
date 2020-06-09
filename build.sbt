@@ -6,22 +6,27 @@ val appName = "http-caching-client"
 
 val compileDependencies = PlayCrossCompilation.dependencies(
   play25 = Seq(
-    "uk.gov.hmrc"       %% "json-encryption"  % "4.4.0-play-25",
+    "uk.gov.hmrc"       %% "json-encryption"  % "4.7.0-play-25",
     "com.typesafe.play" %% "play-json"        % "2.5.19",
-    "uk.gov.hmrc"       %% "http-verbs"       % "10.0.0-play-25"
+    "uk.gov.hmrc"       %% "http-verbs"       % "10.7.0-play-25"
   ),
   play26 = Seq(
-    "uk.gov.hmrc"       %% "json-encryption"  % "4.4.0-play-26",
-    "com.typesafe.play" %% "play-json"        % "2.6.13",
-    "uk.gov.hmrc"       %% "http-verbs"       % "10.0.0-play-26"
+    "uk.gov.hmrc"       %% "json-encryption"  % "4.7.0-play-26",
+    "com.typesafe.play" %% "play-json"        % "2.6.14",
+    "uk.gov.hmrc"       %% "http-verbs"       % "10.7.0-play-26"
+  ),
+  play27 = Seq(
+    "uk.gov.hmrc"       %% "json-encryption"  % "4.7.0-play-27",
+    "com.typesafe.play" %% "play-json"        % "2.7.4",
+    "uk.gov.hmrc"       %% "http-verbs"       % "10.7.0-play-27"
   )
 )
 
 val testDependencies = PlayCrossCompilation.dependencies(
   shared = Seq(
-    "org.scalatest" %% "scalatest"  % "3.0.5" % "test",
-    "org.pegdown"   % "pegdown"     % "1.6.0" % "test",
-    "org.mockito"   % "mockito-all" % "1.9.5" % "test"
+    "org.scalatest"         %% "scalatest"     % "3.1.2"   % "test",
+    "org.mockito"           %% "mockito-scala" % "1.5.11"  % "test",
+    "com.vladsch.flexmark"   % "flexmark-all"  % "0.35.10" % "test"
   )
 )
 
