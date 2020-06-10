@@ -6,17 +6,17 @@ val appName = "http-caching-client"
 
 val compileDependencies = PlayCrossCompilation.dependencies(
   play25 = Seq(
-    "uk.gov.hmrc"       %% "json-encryption"  % "4.7.0-play-25",
+    "uk.gov.hmrc"       %% "json-encryption"  % "4.8.0-play-25",
     "com.typesafe.play" %% "play-json"        % "2.5.19",
     "uk.gov.hmrc"       %% "http-verbs"       % "10.7.0-play-25"
   ),
   play26 = Seq(
-    "uk.gov.hmrc"       %% "json-encryption"  % "4.7.0-play-26",
+    "uk.gov.hmrc"       %% "json-encryption"  % "4.8.0-play-26",
     "com.typesafe.play" %% "play-json"        % "2.6.14",
     "uk.gov.hmrc"       %% "http-verbs"       % "10.7.0-play-26"
   ),
   play27 = Seq(
-    "uk.gov.hmrc"       %% "json-encryption"  % "4.7.0-play-27",
+    "uk.gov.hmrc"       %% "json-encryption"  % "4.8.0-play-27",
     "com.typesafe.play" %% "play-json"        % "2.7.4",
     "uk.gov.hmrc"       %% "http-verbs"       % "10.7.0-play-27"
   )
@@ -36,7 +36,7 @@ lazy val library = Project(appName, file("."))
     majorVersion := 9,
     makePublicallyAvailableOnBintray := true,
     libraryDependencies ++= compileDependencies ++ testDependencies,
-    scalaVersion := "2.11.12",
+    scalaVersion := "2.12.8",
     crossScalaVersions := Seq("2.11.12", "2.12.8"),
     resolvers := Seq(
       Resolver.bintrayRepo("hmrc", "releases"),
