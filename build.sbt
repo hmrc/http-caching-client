@@ -36,7 +36,7 @@ lazy val library = Project(appName, file("."))
     majorVersion := 9,
     makePublicallyAvailableOnBintray := true,
     libraryDependencies ++= compileDependencies ++ testDependencies,
-    scalaVersion := "2.11.12",
+    scalaVersion := "2.12.8",
     crossScalaVersions := Seq("2.11.12", "2.12.8"),
     resolvers := Seq(
       Resolver.bintrayRepo("hmrc", "releases"),
