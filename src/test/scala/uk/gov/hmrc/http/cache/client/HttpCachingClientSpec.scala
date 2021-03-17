@@ -222,7 +222,7 @@ object SessionCachingForTest {
       body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] = ???
     override def remove()(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = {
       cacheMap = CacheMap(map.id, Map.empty)
-      Future.successful(HttpResponse(200))
+      Future.successful(HttpResponse(status = 200, body = ""))
     }
   }
   def apply(e: Exception) = new MockedSessionCache {
