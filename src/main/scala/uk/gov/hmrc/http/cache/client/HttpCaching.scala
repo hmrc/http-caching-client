@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,10 @@ object CacheMap {
 }
 
 trait CachingVerbs {
+  import uk.gov.hmrc.http.HttpReads.Implicits._
+  val legacyRawReads: HttpReads[HttpResponse] =
+    throwOnFailure(readEitherOf(readRaw))
+
   def http: CoreGet with CorePut with CoreDelete
 
   def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
@@ -48,7 +52,7 @@ trait CachingVerbs {
     http.PUT[T, CacheMap](uri, body)
 
   def delete(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
-    http.DELETE(uri)
+    http.DELETE[HttpResponse](uri)(legacyRawReads, hc, executionContext)
 
 }
 
