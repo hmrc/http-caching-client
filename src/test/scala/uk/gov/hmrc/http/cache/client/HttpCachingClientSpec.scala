@@ -63,8 +63,7 @@ class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutu
     }
 
     "return None if the map is not found" in {
-
-      val client = SessionCachingForTest(new NotFoundException("not found"))
+      val client = SessionCachingForTest(UpstreamErrorResponse("Not found", 404))
       client.fetch().futureValue shouldBe None
     }
 
@@ -181,7 +180,7 @@ class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutu
 
     "return None if the map is not found" in {
 
-      val client = ShortLivedCachingForTest(new NotFoundException("not found"))
+      val client = ShortLivedCachingForTest(UpstreamErrorResponse("Not found", 404))
       client.fetch(id).futureValue shouldBe None
     }
 

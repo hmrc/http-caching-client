@@ -72,7 +72,7 @@ trait HttpCaching extends CachingVerbs {
     implicit hc: HeaderCarrier,
     executionContext: ExecutionContext): Future[Option[CacheMap]] =
     get(buildUri(source, cacheId)).map(Some(_)).recover {
-      case e: NotFoundException => None
+      case UpstreamErrorResponse.WithStatusCode(404, _) => None
     }
 
   def fetchAndGetEntry[T](source: String, cacheId: String, key: String)(
