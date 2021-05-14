@@ -1,5 +1,6 @@
 # http-caching-client
 
+![](https://img.shields.io/github/v/release/hmrc/http-caching-client)
 [![Apache-2.0 license](http://img.shields.io/badge/license-Apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 
@@ -37,7 +38,7 @@ Implement the client
     }
 ```
 
-Cache the session's data use ```SessionCache#cache```. 
+Cache the session's data use ```SessionCache#cache```.
 
 Please note that implicit Writes have to be provided in order to serialize the objects into json. For example:
 
@@ -91,4 +92,3 @@ When a user session reliant upon a ```ShortLivedCache``` instance ends, a delete
 ## License ##
 
 This code is open source software licensed under the [Apache 2.0 License]("http://www.apache.org/licenses/LICENSE-2.0.html").
-
