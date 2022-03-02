@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ package uk.gov.hmrc.http.cache.client
 import play.api.libs.json.{JsPath, JsValue, Json, JsonValidationError}
 
 class KeyStoreEntryValidationException(
-  val key: String,
+  val key        : String,
   val invalidJson: JsValue,
-  val readingAs: Class[_],
-  val errors: Seq[(JsPath, Seq[JsonValidationError])])
-    extends Exception {
+  val readingAs  : Class[_],
+  val errors     : scala.collection.Seq[(JsPath, scala.collection.Seq[JsonValidationError])] // default Seq for Scala 2.13 is scala.collection.immutable.Seq - this keeps it the same as JsResult
+) extends Exception {
   override def getMessage: String =
     s"KeyStore entry for key '$key' was '${Json.stringify(invalidJson)}'. Attempt to convert to ${readingAs.getName} gave errors: $errors"
 }
