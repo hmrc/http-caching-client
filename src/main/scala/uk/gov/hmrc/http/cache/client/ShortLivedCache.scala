@@ -18,41 +18,56 @@ package uk.gov.hmrc.http.cache.client
 
 import play.api.libs.json._
 import uk.gov.hmrc.crypto.json.{JsonDecryptor, JsonEncryptor}
-import uk.gov.hmrc.crypto.{CompositeSymmetricCrypto, Protected}
+import uk.gov.hmrc.crypto.{Decrypter, Encrypter, Protected}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 trait ShortLivedCache extends CacheUtil {
 
-  implicit val crypto: CompositeSymmetricCrypto
+  implicit val crypto: Decrypter with Encrypter
 
   def shortLiveCache: ShortLivedHttpCaching
 
-  def cache[A](cacheId: String, formId: String, body: A)(
-    implicit hc: HeaderCarrier,
+  def cache[A](
+    cacheId: String,
+    formId : String,
+    body   : A
+  )(implicit
+    hc : HeaderCarrier,
     wts: Writes[A],
-    executionContext: ExecutionContext): Future[CacheMap] = {
+    ec : ExecutionContext
+  ): Future[CacheMap] = {
     val protectd         = Protected(body)
     val encryptionFormat = new JsonEncryptor()
-    val fm               = shortLiveCache.cache(cacheId, formId, protectd)(hc, encryptionFormat, executionContext)
-    fm.map(cm => new CryptoCacheMap(cm))
+    shortLiveCache
+      .cache(cacheId, formId, protectd)(hc, encryptionFormat, ec)
+      .map(cm => new CryptoCacheMap(cm))
   }
 
   def fetch(
-    cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[Option[CacheMap]] = {
-    val fm = shortLiveCache.fetch(cacheId)
-    fm.map(om => om.map(cm => new CryptoCacheMap(cm)))
-  }
+    cacheId: String
+  )(implicit
+    hc: HeaderCarrier,
+    ec: ExecutionContext
+  ): Future[Option[CacheMap]] =
+    shortLiveCache
+      .fetch(cacheId)
+      .map(_.map(cm => new CryptoCacheMap(cm)))
 
   def fetchAndGetEntry[T](
     cacheId: String,
-    key: String)(implicit hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext): Future[Option[T]] =
+    key    : String
+  )(implicit
+    hc : HeaderCarrier,
+    rds: Reads[T],
+    ec : ExecutionContext
+  ): Future[Option[T]] =
     try {
       val decryptionFormat = new JsonDecryptor()
-      val encrypted: Future[Option[Protected[T]]] =
-        shortLiveCache.fetchAndGetEntry(cacheId, key)(hc, decryptionFormat, executionContext)
-      encrypted.map(op => convert(op))
+      shortLiveCache
+        .fetchAndGetEntry(cacheId, key)(hc, decryptionFormat, ec)
+        .map(convert)
     } catch {
       case e: SecurityException =>
         throw CachingException(s"Failed to fetch a decrypted entry by cacheId:$cacheId and key:$key", e)
@@ -64,10 +79,10 @@ trait ShortLivedCache extends CacheUtil {
 
 trait CacheUtil {
   def convert[T](entry: Option[Protected[T]]): Option[T] =
-    entry.map(e => e.decryptedValue)
+    entry.map(_.decryptedValue)
 }
 
-class CryptoCacheMap(cm: CacheMap)(implicit crypto: CompositeSymmetricCrypto)
+class CryptoCacheMap(cm: CacheMap)(implicit crypto: Decrypter with Encrypter)
     extends CacheMap(cm.id, cm.data)
     with CacheUtil {
 
@@ -79,5 +94,4 @@ class CryptoCacheMap(cm: CacheMap)(implicit crypto: CompositeSymmetricCrypto)
     } catch {
       case e: SecurityException => throw CachingException(s"Failed to fetch a decrypted entry by key:$key", e)
     }
-
 }

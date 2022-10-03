@@ -3,9 +3,9 @@ import sbt._
 
 val compileDependencies = PlayCrossCompilation.dependencies(
   play28 = Seq(
-    "uk.gov.hmrc"       %% "json-encryption"    % "4.11.0-play-28",
+    "uk.gov.hmrc"       %% "json-encryption"    % "5.1.0-play-28",
     "com.typesafe.play" %% "play-json"          % "2.8.2",
-    "uk.gov.hmrc"       %% "http-verbs-play-28" % "13.12.0"
+    "uk.gov.hmrc"       %% "http-verbs-play-28" % "14.7.0"
   )
 )
 
@@ -17,13 +17,13 @@ val testDependencies = PlayCrossCompilation.dependencies(
   )
 )
 
-val scala2_12 = "2.12.15"
-val scala2_13 = "2.13.7"
+val scala2_12 = "2.12.17"
+val scala2_13 = "2.13.9"
 
 lazy val library = Project("http-caching-client", file("."))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
   .settings(
-    majorVersion := 9,
+    majorVersion := 10,
     isPublicArtefact := true,
     scalaVersion := scala2_12,
     crossScalaVersions := Seq(scala2_12, scala2_13),
