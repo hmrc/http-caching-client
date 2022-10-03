@@ -9,3 +9,5 @@ lib_managed
 *.DS_Store
 .metals/
 .vscode/
+.bloop/
+metals.sbt
