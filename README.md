@@ -1,6 +1,6 @@
 # http-caching-client
+## This library has been deprecated. Please use the [Cache utility](https://github.com/hmrc/hmrc-mongo#cache) in hmrc-mongo
 
-This library has been deprecated. Please use the [Cache utility](https://github.com/hmrc/hmrc-mongo#cache) in hmrc-mongo
 
 ![](https://img.shields.io/github/v/release/hmrc/http-caching-client)
 [![Apache-2.0 license](http://img.shields.io/badge/license-Apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
