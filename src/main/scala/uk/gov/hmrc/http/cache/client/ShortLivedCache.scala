@@ -23,7 +23,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait ShortLivedCache extends CacheUtil {
+trait ShortLivedCache {
 
   implicit val crypto: Decrypter with Encrypter
 
@@ -38,10 +38,10 @@ trait ShortLivedCache extends CacheUtil {
     wts: Writes[A],
     ec : ExecutionContext
   ): Future[CacheMap] = {
-    val protectd         = SensitiveA(body)
+    val sensitive        = SensitiveA(body)
     val encryptionFormat = JsonEncryption.sensitiveEncrypter[A, SensitiveA[A]]
     shortLiveCache
-      .cache(cacheId, formId, protectd)(hc, encryptionFormat, ec)
+      .cache(cacheId, formId, sensitive)(hc, encryptionFormat, ec)
       .map(cm => new CryptoCacheMap(cm))
   }
 
@@ -67,7 +67,7 @@ trait ShortLivedCache extends CacheUtil {
       val decryptionFormat = JsonEncryption.sensitiveDecrypter[A, SensitiveA[A]](SensitiveA.apply)
       shortLiveCache
         .fetchAndGetEntry(cacheId, key)(hc, decryptionFormat, ec)
-        .map(convert)
+        .map(_.map(_.decryptedValue))
     } catch {
       case e: SecurityException =>
         throw CachingException(s"Failed to fetch a decrypted entry by cacheId:$cacheId and key:$key", e)
@@ -77,20 +77,14 @@ trait ShortLivedCache extends CacheUtil {
     shortLiveCache.remove(cacheId)
 }
 
-trait CacheUtil {
-  def convert[A](entry: Option[Sensitive[A]]): Option[A] =
-    entry.map(_.decryptedValue)
-}
-
 class CryptoCacheMap(cm: CacheMap)(implicit crypto: Decrypter with Encrypter)
-    extends CacheMap(cm.id, cm.data)
-    with CacheUtil {
+  extends CacheMap(cm.id, cm.data) {
 
   override def getEntry[A](key: String)(implicit fjs: Reads[A]): Option[A] =
     try {
       val decryptionFormat = JsonEncryption.sensitiveDecrypter[A, SensitiveA[A]](SensitiveA.apply)
       val encryptedEntry   = cm.getEntry(key)(decryptionFormat)
-      convert(encryptedEntry)
+      encryptedEntry.map(_.decryptedValue)
     } catch {
       case e: SecurityException => throw CachingException(s"Failed to fetch a decrypted entry by key:$key", e)
     }
