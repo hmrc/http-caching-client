@@ -3,9 +3,8 @@ import sbt._
 
 val compileDependencies = PlayCrossCompilation.dependencies(
   play28 = Seq(
-    "uk.gov.hmrc"       %% "json-encryption"    % "5.1.0-play-28",
-    "com.typesafe.play" %% "play-json"          % "2.8.2",
-    "uk.gov.hmrc"       %% "http-verbs-play-28" % "14.7.0"
+    "uk.gov.hmrc" %% "crypto-json-play-28" % "7.3.0",
+    "uk.gov.hmrc" %% "http-verbs-play-28"  % "14.10.0"
   )
 )
 
