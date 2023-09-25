@@ -17,8 +17,12 @@ For example, the HMRC Multi Digital Tax Platform has a SessionCache instance cal
 ## Installation
 
 ``` scala
-libraryDependencies += "uk.gov.hmrc" %% "http-caching-client" % "[INSERT_VERSION]"
+resolvers += MavenRepository("HMRC-open-artefacts-maven2", "https://open.artefacts.tax.service.gov.uk/maven2")
+
+libraryDependencies += "uk.gov.hmrc" %% "http-caching-client-play-xx" % "[INSERT_VERSION]"
 ```
+
+Where `play-xx` is your version of Play (e.g. `play-30`).
 
 ## Using a mongo-caching instance
 
@@ -33,11 +37,11 @@ A mongo-caching instance is a cache accessible via REST calls. To identify the s
 Implement the client
 
 ```scala
-    import uk.gov.hmrc.http.cache.client.SessionCache
+import uk.gov.hmrc.http.cache.client.SessionCache
 
-    object SessionCache extends SessionCache {
-        // implement the client
-    }
+object SessionCache extends SessionCache {
+  // implement the client
+}
 ```
 
 Cache the session's data use ```SessionCache#cache```.
@@ -45,9 +49,9 @@ Cache the session's data use ```SessionCache#cache```.
 Please note that implicit Writes have to be provided in order to serialize the objects into json. For example:
 
 ```scala
-    val f1 = FormOnPage1("value1", true)
-    implicit val formatsF1 = Json.format[FormOnPage1]
-    SessionCache.cache[FormOnPage1]("formOnPage1", f1)
+val f1 = FormOnPage1("value1", true)
+implicit val formatsF1 = Json.format[FormOnPage1]
+SessionCache.cache[FormOnPage1]("formOnPage1", f1)
 ```
 
 Note: The call to ```cache``` returns a Future, so the action must be completed before the same cache is read.
@@ -57,13 +61,13 @@ When storing multiple objects to the same combination of source and cacheId, (th
 Read from the full cache use ```SessionCache#fetch```. If no cache is found, None is returned. Once the full cached object is available in the returned CacheMap object, the single cached objects can be retrieved. This will not produce any further REST calls. The method to use is the following:
 
 ```scala
-    def getEntry[T](key: String)(implicit fjs: Reads[T]): Option[T]
+def getEntry[T](key: String)(implicit fjs: Reads[T]): Option[T]
 ```
 
 For example:
 
 ```scala
-    val form1 = data.getEntry[FormOnPage1]("formOnPage1")
+val form1 = data.getEntry[FormOnPage1]("formOnPage1")
 ```
 
 If the `key` is not found in the cache, None is returned
@@ -73,16 +77,16 @@ If the `key` is not found in the cache, None is returned
 Implement the client
 
 ```scala
-    import uk.gov.hmrc.http.cache.client.{ShortLivedCache,ShortLivedHttpCaching}
+import uk.gov.hmrc.http.cache.client.{ShortLivedCache,ShortLivedHttpCaching}
 
-    object ShortLivedHttpCaching extends ShortLivedHttpCaching {
-      // implement the client
-    }
+object ShortLivedHttpCaching extends ShortLivedHttpCaching {
+  // implement the client
+}
 
-    object ShortLivedCache extends ShortLivedCache {
-      override implicit lazy val crypto = ApplicationCrypto.JsonCrypto
-      override lazy val shortLiveCache = ShortLivedHttpCaching
-    }
+object ShortLivedCache extends ShortLivedCache {
+  override implicit lazy val crypto = ApplicationCrypto.JsonCrypto
+  override lazy val shortLiveCache = ShortLivedHttpCaching
+}
 ```
 
 For ```ShortLivedCache``` examples see the above examples for ```SessionCache```, with the only API difference being that the functions require a ```cacheId``` in the method signatures.
@@ -90,6 +94,13 @@ For ```ShortLivedCache``` examples see the above examples for ```SessionCache```
 A ```ShortLivedCache``` requires JSON encryption, which means a ```json.encryption.key``` configuration property must be present to use encryption and decryption.
 
 When a user session reliant upon a ```ShortLivedCache``` instance ends, a delete command should be issued on the shorted data otherwise it will be cached until the TTL expires.
+
+## Changes
+
+### Version 11.0.0
+- Built for Play 2.8, 2.9 and 3.0.
+- There are specific artefacts for each version of play. The version does not include the play version any more.
+
 
 ## License ##
 

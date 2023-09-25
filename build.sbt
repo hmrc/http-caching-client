@@ -1,31 +1,44 @@
-import sbt.Keys._
-import sbt._
+val scala2_12 = "2.12.18"
+val scala2_13 = "2.13.12"
 
-val compileDependencies = PlayCrossCompilation.dependencies(
-  play28 = Seq(
-    "uk.gov.hmrc" %% "crypto-json-play-28" % "7.3.0",
-    "uk.gov.hmrc" %% "http-verbs-play-28"  % "14.10.0"
+ThisBuild / majorVersion     := 11
+ThisBuild / isPublicArtefact := true
+ThisBuild / scalaVersion     := scala2_13
+
+lazy val library = (project in file("."))
+  .settings(publish / skip := true)
+  .aggregate(
+    playPartialsPlay28,
+    playPartialsPlay29
   )
+
+val sharedSources = Seq(
+  Compile / unmanagedSourceDirectories   += baseDirectory.value / s"../src-common/main/scala",
+  Compile / unmanagedResourceDirectories += baseDirectory.value / s"../src-common/main/resources",
+  Test    / unmanagedSourceDirectories   += baseDirectory.value / s"../src-common/test/scala",
+  Test    / unmanagedResourceDirectories += baseDirectory.value / s"../src-common/test/resources"
 )
 
-val testDependencies = PlayCrossCompilation.dependencies(
-  shared = Seq(
-    "org.scalatest"         %% "scalatest"     % "3.1.2"   % Test,
-    "org.mockito"           %% "mockito-scala" % "1.5.11"  % Test,
-    "com.vladsch.flexmark"  %  "flexmark-all"  % "0.35.10" % Test
-  )
-)
-
-val scala2_12 = "2.12.17"
-val scala2_13 = "2.13.9"
-
-lazy val library = Project("http-caching-client", file("."))
+lazy val playPartialsPlay28 = Project("http-caching-client-play-28", file("http-caching-client-play-28"))
   .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
   .settings(
-    majorVersion := 10,
-    isPublicArtefact := true,
-    scalaVersion := scala2_12,
     crossScalaVersions := Seq(scala2_12, scala2_13),
-    libraryDependencies ++= compileDependencies ++ testDependencies
+    sharedSources,
+    libraryDependencies ++= LibDependencies.common ++ LibDependencies.play28
   )
-  .settings(PlayCrossCompilation.playCrossCompilationSettings)
+
+lazy val playPartialsPlay29 = Project("http-caching-client-play-29", file("http-caching-client-play-29"))
+  .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
+  .settings(
+    crossScalaVersions := Seq(scala2_13),
+    sharedSources,
+    libraryDependencies ++= LibDependencies.common ++ LibDependencies.play29
+  )
+
+lazy val playPartialsPlay30 = Project("http-caching-client-play-30", file("http-caching-client-play-30"))
+  .disablePlugins(sbt.plugins.JUnitXmlReportPlugin)
+  .settings(
+    crossScalaVersions := Seq(scala2_13),
+    sharedSources,
+    libraryDependencies ++= LibDependencies.common ++ LibDependencies.play30
+  )
