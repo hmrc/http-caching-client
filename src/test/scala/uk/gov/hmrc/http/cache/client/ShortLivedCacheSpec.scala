@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,18 +103,19 @@ object FormOnPage3 {
 
 case class FormOnPage3(field1: String, field2: Boolean)
 
-object TestCrypto extends CompositeSymmetricCrypto {
+object TestCrypto extends Encrypter with Decrypter {
 
-  override def encrypt(value: PlainContent): Crypted = value match {
-    case PlainText(text) => Crypted(text)
-    case _               => throw new RuntimeException(s"Unable to encrypt unknown message type: $value")
-  }
+  override def encrypt(value: PlainContent): Crypted =
+    value match {
+      case PlainText(text) => Crypted(text)
+      case _               => throw new RuntimeException(s"Unable to encrypt unknown message type: $value")
+    }
 
   override def decrypt(crypted: Crypted): PlainText =
     PlainText(crypted.value)
 
-  override protected lazy val currentCrypto: Encrypter with Decrypter = ???
-  override protected lazy val previousCryptos: Seq[Decrypter]         = ???
+  override def decryptAsBytes(crypted: Crypted): PlainBytes =
+    PlainBytes(crypted.value.getBytes)
 }
 
 class TestCacheMap(override val id: String, override val data: Map[String, JsValue]) extends CacheMap(id, data) {
