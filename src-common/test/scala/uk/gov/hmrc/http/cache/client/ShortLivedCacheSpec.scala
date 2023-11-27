@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.http.cache.client
 
-import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.slf4j.LoggerFactory
-import play.api.libs.json.{JsValue, Json, Reads, Writes}
+import play.api.libs.json.{Format, JsValue, Json, Reads, Writes}
 import uk.gov.hmrc.crypto._
 import uk.gov.hmrc.http.{CoreDelete, CoreGet, CorePut, HeaderCarrier}
 
@@ -31,9 +31,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class ShortLivedCacheSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
+  implicit val hc: HeaderCarrier =
+    HeaderCarrier()
 
-  implicit val hc              = HeaderCarrier()
-  implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
+  implicit val defaultPatience: PatienceConfig =
+    PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
 
   "ShortLivedCacheWithCrpto" should {
     import uk.gov.hmrc.http.cache.client.FormOnPage3.formats
@@ -93,12 +95,11 @@ class ShortLivedCacheSpec extends AnyWordSpecLike with Matchers with ScalaFuture
         cm.map(f => f.getEntry("exception-key"))
       }
     }
-
   }
 }
 
 object FormOnPage3 {
-  implicit val formats = Json.format[FormOnPage3]
+  implicit val formats: Format[FormOnPage3] = Json.format[FormOnPage3]
 }
 
 case class FormOnPage3(field1: String, field2: Boolean)

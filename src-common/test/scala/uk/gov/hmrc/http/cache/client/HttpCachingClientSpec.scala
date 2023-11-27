@@ -30,11 +30,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 case class Field1(field1: String)
 
 object Field1 {
-  implicit val formats = Json.format[Field1]
+  implicit val formats: Format[Field1] = Json.format[Field1]
 }
 
 object FormOnPage1 {
-  implicit val formats = Json.format[FormOnPage1]
+  implicit val formats: Format[FormOnPage1] = Json.format[FormOnPage1]
 }
 
 case class FormOnPage1(field1: String, field2: Boolean)
@@ -42,13 +42,15 @@ case class FormOnPage2(field1: Int)
 
 class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
 
-  implicit val hc              = new HeaderCarrier(sessionId = Some(SessionId("ksc-session-id")))
-  implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
+  implicit val hc: HeaderCarrier =
+    new HeaderCarrier(sessionId = Some(SessionId("ksc-session-id")))
+
+  implicit val defaultPatience: PatienceConfig =
+    PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
 
   val source = "aSource"
 
   "The session cache client" should {
-
     val id = "httpSessionId"
 
     "fetch a map by id" in {
@@ -98,7 +100,6 @@ class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutu
   }
 
   "A keystore map" should {
-
     val id = "httpSessionId"
 
     "read entries into case classes" in {
@@ -119,7 +120,6 @@ class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutu
     }
 
     "fetch and retrieve keyed data" in {
-
       val data = CacheMap(
         id,
         Map(
@@ -160,26 +160,21 @@ class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutu
         entry.getEntry[Field1]("form1")
       }
     }
-
   }
 
   "The short lived cache client" should {
-
     val id = "explicitlySetId"
 
     "fetch a map by id" in {
-
       val data   = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
       val client = ShortLivedCachingForTest(data)
 
       val map = client.fetch(id).futureValue
 
       map should be(defined)
-
     }
 
     "return None if the map is not found" in {
-
       val client = ShortLivedCachingForTest(UpstreamErrorResponse("Not found", 404))
       client.fetch(id).futureValue shouldBe None
     }
@@ -193,9 +188,7 @@ class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutu
 
       map.data shouldBe expectedResult
     }
-
   }
-
 }
 
 trait MockedSessionCache extends SessionCache with MockitoSugar {
