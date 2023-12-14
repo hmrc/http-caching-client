@@ -9,7 +9,8 @@ lazy val library = (project in file("."))
   .settings(publish / skip := true)
   .aggregate(
     playPartialsPlay28,
-    playPartialsPlay29
+    playPartialsPlay29,
+    playPartialsPlay30
   )
 
 val sharedSources = Seq(
