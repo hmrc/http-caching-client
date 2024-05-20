@@ -1,13 +1,13 @@
 import sbt._
 object LibDependencies {
 
-  private val cryptoVersion    = "7.6.0"
-  private val httpVerbsVersion = "14.12.0"
+  private val cryptoVersion    = "8.0.0"
+  private val httpVerbsVersion = "15.0.0"
 
   val common = Seq(
-    "org.scalatest"         %% "scalatest"               % "3.2.17"  % Test,
-    "com.vladsch.flexmark"  %  "flexmark-all"            % "0.64.8"  % Test,
-    "org.mockito"           %% "mockito-scala-scalatest" % "1.17.14" % Test
+    "org.scalatest"         %% "scalatest"               % "3.2.18"   % Test,
+    "com.vladsch.flexmark"  %  "flexmark-all"            % "0.64.8"   % Test,
+    "org.scalatestplus"     %% "mockito-3-4"             % "3.2.10.0" % Test
   )
 
   val play28 = Seq(

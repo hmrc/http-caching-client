@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.http.cache.client
 
-import org.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json._
 import uk.gov.hmrc.http._
 
@@ -40,7 +42,7 @@ object FormOnPage1 {
 case class FormOnPage1(field1: String, field2: Boolean)
 case class FormOnPage2(field1: Int)
 
-class HttpCachingClientSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
+class HttpCachingClientSpec extends AnyWordSpec with Matchers with ScalaFutures {
 
   implicit val hc: HeaderCarrier =
     new HeaderCarrier(sessionId = Some(SessionId("ksc-session-id")))
