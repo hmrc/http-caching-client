@@ -17,17 +17,185 @@
 package uk.gov.hmrc.http.cache.client
 
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito.{reset, times, verify, when}
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.mockito.Mockito.{verify, when}
+import org.scalatest.OptionValues
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json._
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HeaderCarrier, SessionId, UpstreamErrorResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+
+class HttpCachingClientSpec
+  extends AnyWordSpec
+     with Matchers
+     with ScalaFutures
+     with IntegrationPatience
+     with MockitoSugar
+     with OptionValues {
+
+  val sessionId = "ksc-session-id"
+
+  implicit val hc: HeaderCarrier =
+    new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
+
+  "SessionCache" should {
+    val id = "httpSessionId"
+
+    "fetch a map by id" in new SessionCacheSetup {
+      val data = CacheMap(id, Map("form1" -> Json.obj("field1" -> "value1")))
+
+      when(mockCachingVerbs.get(any[String])(any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(Future.successful(data))
+
+      sessionCache.fetch().futureValue.value shouldBe data
+
+      verify(mockCachingVerbs).get(eqTo(s"$baseUri/$domain/$defaultSource/$sessionId"))(any[HeaderCarrier], any[ExecutionContext])
+    }
+
+    "return None if the map is not found" in new SessionCacheSetup {
+      when(mockCachingVerbs.get(any[String])(any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(Future.failed(UpstreamErrorResponse("Not found", 404)))
+
+      sessionCache.fetch().futureValue shouldBe None
+    }
+
+    "fetch an entry in map" in new SessionCacheSetup {
+      val data  = CacheMap(id, Map("form1" -> Json.obj("field1" -> "value1")))
+
+      when(mockCachingVerbs.get(any[String])(any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(Future.successful(data))
+
+      implicit val formats: Format[Field1] = Json.format[Field1]
+
+      sessionCache.fetchAndGetEntry("form1").futureValue.value shouldBe Field1("value1")
+    }
+
+    "store an entry" in new SessionCacheSetup {
+      val formId = "form1"
+      val data   = Field1("value1")
+
+      when(mockCachingVerbs.put(any[String], any[Field1])(any[HeaderCarrier], any[Writes[Field1]], any[ExecutionContext]))
+        .thenReturn(Future.successful(CacheMap("sessionId", Map(id -> Json.toJson(data)))))
+
+      val cacheMap = sessionCache.cache[Field1](formId, data).futureValue
+
+      cacheMap.data shouldBe Map(id -> new JsObject(Map("field1" -> JsString("value1"))))
+
+      verify(mockCachingVerbs).put(eqTo(s"$baseUri/$domain/$defaultSource/$sessionId/data/$formId"), eqTo(data))(any[HeaderCarrier], any[Writes[Field1]], any[ExecutionContext])
+    }
+
+    "delete an entry" in new SessionCacheSetup {
+      when(mockCachingVerbs.delete(any[String])(any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(Future.unit)
+
+      sessionCache.remove().futureValue
+
+      verify(mockCachingVerbs).delete(eqTo(s"$baseUri/$domain/$defaultSource/$sessionId"))(any[HeaderCarrier], any[ExecutionContext])
+    }
+  }
+
+  "CacheMap" should {
+    val id = "httpSessionId"
+
+    "extract entries" in {
+      val cacheMap =
+        CacheMap(
+          id,
+          Map(
+            "form1" -> Json.obj("field1" -> "value1"),
+            "form2" -> Json.obj("field2" -> true)
+          )
+        )
+
+      implicit val formats: Format[Field1] = Json.format[Field1]
+
+      cacheMap.getEntry[Field1]("form1").value shouldBe Field1("value1")
+    }
+
+    "return an exception for conversions errors" in {
+      val cacheMap =
+        CacheMap(
+          id,
+          Map("form1" -> Json.obj("field1" -> true))
+        )
+
+      implicit val formats: Format[Field1] = Json.format[Field1]
+
+      intercept[KeyStoreEntryValidationException] {
+        cacheMap.getEntry[Field1]("form1")
+      }
+    }
+  }
+
+  "ShortLivedHttpCaching" should {
+    val id = "explicitlySetId"
+
+    "fetch a map by id" in new ShortLivedHttpCachingSetup {
+      val data  = CacheMap(id, Map("form1" -> Json.obj("field1" -> "value1")))
+
+      when(mockCachingVerbs.get(any[String])(any[HeaderCarrier], any[ExecutionContext]))
+        .thenReturn(Future.successful(data))
+
+      shortLivedHttpCaching.fetch(id).futureValue.value shouldBe data
+
+      verify(mockCachingVerbs).get(eqTo(s"$baseUri/$domain/$defaultSource/$id"))(any[HeaderCarrier], any[ExecutionContext])
+    }
+
+    "store an entry" in new ShortLivedHttpCachingSetup {
+      val formId = "form1"
+      val data   = Field1("value1")
+
+      when(mockCachingVerbs.put(any[String], any[Field1])(any[HeaderCarrier], any[Writes[Field1]], any[ExecutionContext]))
+        .thenReturn(Future.successful(CacheMap("sessionId", Map(id -> Json.toJson(data)))))
+
+      val cacheMap = shortLivedHttpCaching.cache[Field1](id, formId, data).futureValue
+
+      cacheMap.data shouldBe Map(id -> new JsObject(Map("field1" -> JsString("value1"))))
+
+      verify(mockCachingVerbs).put(eqTo(s"$baseUri/$domain/$defaultSource/$id/data/$formId"), eqTo(data))(any[HeaderCarrier], any[Writes[Field1]], any[ExecutionContext])
+    }
+  }
+
+  trait SessionCacheSetup { outer =>
+    val baseUri       = "https://on-left"
+    val defaultSource = "aSource"
+    val domain        = "keystore"
+
+    val mockCachingVerbs = mock[CachingVerbs]
+
+    val sessionCache = new SessionCache {
+      override def baseUri      : String = outer.baseUri
+      override def defaultSource: String = outer.defaultSource
+      override def domain       : String = outer.domain
+
+      override val httpClientV2 = mock[HttpClientV2]
+
+      override val cachingVerbs: CachingVerbs = mockCachingVerbs
+    }
+  }
+
+  trait ShortLivedHttpCachingSetup { outer =>
+    val baseUri       = "https://on-left"
+    val defaultSource = "aSource"
+    val domain        = "keystore"
+
+    val mockCachingVerbs = mock[CachingVerbs]
+
+    val shortLivedHttpCaching = new ShortLivedHttpCaching {
+      override def baseUri      : String = outer.baseUri
+      override def defaultSource: String = outer.defaultSource
+      override def domain       : String = outer.domain
+      override val httpClientV2 = mock[HttpClientV2]
+
+      override val cachingVerbs: CachingVerbs = mockCachingVerbs
+    }
+  }
+}
 
 case class Field1(field1: String)
 
@@ -41,243 +209,3 @@ object FormOnPage1 {
 
 case class FormOnPage1(field1: String, field2: Boolean)
 case class FormOnPage2(field1: Int)
-
-class HttpCachingClientSpec extends AnyWordSpec with Matchers with ScalaFutures {
-
-  implicit val hc: HeaderCarrier =
-    new HeaderCarrier(sessionId = Some(SessionId("ksc-session-id")))
-
-  implicit val defaultPatience: PatienceConfig =
-    PatienceConfig(timeout = Span(5, Seconds), interval = Span(100, Millis))
-
-  val source = "aSource"
-
-  "The session cache client" should {
-    val id = "httpSessionId"
-
-    "fetch a map by id" in {
-
-      val data   = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
-      val client = SessionCachingForTest(data)
-
-      val map = client.fetch().futureValue
-
-      map should be(defined)
-
-    }
-
-    "return None if the map is not found" in {
-      val client = SessionCachingForTest(UpstreamErrorResponse("Not found", 404))
-      client.fetch().futureValue shouldBe None
-    }
-
-    "store an entry" in {
-      val expectedResult = Map(id -> new JsObject(Map("field1" -> JsString("value1"))))
-      val data           = Field1("value1")
-
-      val client = SessionCachingForTest(id)
-      val map    = client.cache[Field1]("form1", data).futureValue
-
-      map.data shouldBe expectedResult
-    }
-
-    "extract the sessionId from the HeaderCarrier" in {
-      val data   = CacheMap(id, Map.empty)
-      val client = SessionCachingForTest(data)
-      client.cacheId.futureValue shouldBe "sessionId"
-    }
-
-    "delete an entry" in {
-      val data   = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
-      val client = SessionCachingForTest(data)
-
-      val map = client.fetch().futureValue
-      map should be(defined)
-
-      client.remove()
-
-      val deletedMap = client.fetch().futureValue
-      deletedMap.get.data should be(empty)
-    }
-  }
-
-  "A keystore map" should {
-    val id = "httpSessionId"
-
-    "read entries into case classes" in {
-      val data = CacheMap(
-        id,
-        Map(
-          "form1" -> new JsObject(Map("field1" -> JsString("value1"))),
-          "form2" -> new JsObject(Map("field2" -> JsBoolean(true)))))
-
-      implicit val formats = Json.format[Field1]
-
-      val client = SessionCachingForTest(data)
-
-      val entry = client.fetch().futureValue.get
-      val f1o   = entry.getEntry[Field1]("form1")
-      f1o     should not be empty
-      f1o.get shouldBe Field1("value1")
-    }
-
-    "fetch and retrieve keyed data" in {
-      val data = CacheMap(
-        id,
-        Map(
-          "form1" -> new JsObject(Map("field1" -> JsString("value1"))),
-          "form2" -> new JsObject(Map("field2" -> JsBoolean(true)))))
-
-      implicit val formats = Json.format[Field1]
-
-      val client = SessionCachingForTest(data)
-
-      val f1o = client.fetchAndGetEntry("form1").futureValue
-      f1o     should not be empty
-      f1o.get shouldBe Field1("value1")
-    }
-
-    "return None if the entry is not found" in {
-      val data = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
-
-      implicit val formats = Json.format[Field1]
-
-      val client = SessionCachingForTest(data)
-
-      val entry = client.fetch().futureValue.get
-      val f1o   = entry.getEntry[Field1]("form2")
-      f1o shouldBe empty
-    }
-
-    "return an exception for conversions errors" in {
-      val data = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsBoolean(true)))))
-
-      implicit val formats = Json.format[Field1]
-
-      val client = SessionCachingForTest(data)
-
-      val entry = client.fetch().futureValue.get
-
-      intercept[KeyStoreEntryValidationException] {
-        entry.getEntry[Field1]("form1")
-      }
-    }
-  }
-
-  "The short lived cache client" should {
-    val id = "explicitlySetId"
-
-    "fetch a map by id" in {
-      val data   = CacheMap(id, Map("form1" -> new JsObject(Map("field1" -> JsString("value1")))))
-      val client = ShortLivedCachingForTest(data)
-
-      val map = client.fetch(id).futureValue
-
-      map should be(defined)
-    }
-
-    "return None if the map is not found" in {
-      val client = ShortLivedCachingForTest(UpstreamErrorResponse("Not found", 404))
-      client.fetch(id).futureValue shouldBe None
-    }
-
-    "store an entry" in {
-      val expectedResult = Map("form1" -> new JsObject(Map("field1" -> JsString("value1"))))
-      val data           = Field1("value1")
-
-      val client = ShortLivedCachingForTest(id, "form1")
-      val map    = client.cache[Field1](id, "form1", data).futureValue
-
-      map.data shouldBe expectedResult
-    }
-  }
-}
-
-trait MockedSessionCache extends SessionCache with MockitoSugar {
-  override val http = mock[CoreGet with CorePut with CoreDelete]
-}
-
-object SessionCachingForTest {
-
-  private val source = "aSource"
-  val aKey           = "form1"
-
-  def apply(map: CacheMap) = new MockedSessionCache {
-    var cacheMap                                                     = map
-    override private[client] def cacheId(implicit hc: HeaderCarrier) = Future.successful("sessionId")
-    override lazy val baseUri                                        = "https://on-left"
-    override lazy val defaultSource: String                          = source
-    override lazy val domain: String                                 = "keystore"
-
-    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
-      Future.successful(cacheMap)
-    override def put[T](
-      uri: String,
-      body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] = ???
-    override def remove()(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] = {
-      cacheMap = CacheMap(map.id, Map.empty)
-      Future.successful(HttpResponse(status = 200, body = ""))
-    }
-  }
-  def apply(e: Exception) = new MockedSessionCache {
-    override private[client] def cacheId(implicit hc: HeaderCarrier) = Future.successful("sessionId")
-    override lazy val baseUri                                        = "https://on-left"
-    override lazy val defaultSource: String                          = source
-    override lazy val domain: String                                 = "keystore"
-
-    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
-      Future.failed(e)
-  }
-  def apply(key: String) = new MockedSessionCache {
-    override private[client] def cacheId(implicit hc: HeaderCarrier) = Future.successful("sessionId")
-    override lazy val baseUri                                        = "https://on-left"
-    override lazy val defaultSource: String                          = source
-    override lazy val domain: String                                 = "keystore"
-
-    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
-      ???
-    override def put[T](
-      uri: String,
-      body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
-      Future.successful(CacheMap("sessionId", Map(key -> wts.writes(body))))
-  }
-}
-
-object ShortLivedCachingForTest {
-
-  private val source = "aSource"
-
-  def apply(map: CacheMap) = new ShortLivedHttpCaching with MockedSessionCache {
-    override lazy val defaultSource: String = source
-    override lazy val baseUri               = "https://on-right"
-    override lazy val domain: String        = "save4later"
-
-    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
-      Future.successful(map)
-    override def put[T](
-      uri: String,
-      body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] = ???
-  }
-
-  def apply(e: Exception) = new ShortLivedHttpCaching with MockedSessionCache {
-    override lazy val defaultSource: String = source
-    override lazy val baseUri               = "https://on-right"
-    override lazy val domain: String        = "save4later"
-
-    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
-      Future.failed(e)
-  }
-
-  def apply(id: String, key: String) = new ShortLivedHttpCaching with MockedSessionCache {
-    override lazy val defaultSource: String = source
-    override lazy val baseUri               = "https://on-right"
-    override lazy val domain: String        = "save4later"
-
-    override def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
-      ???
-    override def put[T](
-      uri: String,
-      body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
-      Future.successful(CacheMap(id, Map(key -> wts.writes(body))))
-  }
-}

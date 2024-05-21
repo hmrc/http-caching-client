@@ -18,7 +18,9 @@ package uk.gov.hmrc.http.cache.client
 
 import play.api.libs.json._
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 
+import java.net.URL
 import scala.concurrent.{ExecutionContext, Future}
 
 case class CacheMap(id: String, data: Map[String, JsValue]) {
@@ -40,31 +42,16 @@ object CacheMap {
   implicit val formats: Format[CacheMap] = Json.format[CacheMap]
 }
 
-trait CachingVerbs {
-  import uk.gov.hmrc.http.HttpReads.Implicits._
-  val legacyRawReads: HttpReads[HttpResponse] =
-    throwOnFailure(readEitherOf(readRaw))
-
-  def http: CoreGet with CorePut with CoreDelete
-
-  def get(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[CacheMap] =
-    http.GET[CacheMap](uri)
-
-  def put[T](
-    uri: String,
-    body: T)(implicit hc: HeaderCarrier, wts: Writes[T], executionContext: ExecutionContext): Future[CacheMap] =
-    http.PUT[T, CacheMap](uri, body)
-
-  def delete(uri: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
-    http.DELETE[HttpResponse](uri)(legacyRawReads, hc, executionContext)
-
-}
-
-trait HttpCaching extends CachingVerbs {
+trait HttpCaching {
 
   def defaultSource: String
   def baseUri: String
   def domain: String
+
+  def httpClientV2: HttpClientV2
+
+  protected def cachingVerbs: CachingVerbs =
+    new DefaultCachingVerbs(httpClientV2)
 
   def cache[A](
     source : String,
@@ -72,14 +59,18 @@ trait HttpCaching extends CachingVerbs {
     formId : String,
     body   : A
   )(implicit
-    wts: Writes[A], hc: HeaderCarrier, executionContext: ExecutionContext
+    wts: Writes[A], hc: HeaderCarrier, ec: ExecutionContext
   ): Future[CacheMap] =
-    put[A](buildUri(source, cacheId) + s"/data/$formId", body)
+    cachingVerbs.put[A](buildUri(source, cacheId) + s"/data/$formId", body)
+      .map { res => println(s"put($source, $cacheId, $formId, $body) returns $res"); res }
 
-  def fetch(source: String, cacheId: String)(
-    implicit hc: HeaderCarrier,
-    executionContext: ExecutionContext): Future[Option[CacheMap]] =
-    get(buildUri(source, cacheId)).map(Some(_)).recover {
+  def fetch(
+    source : String,
+    cacheId: String
+  )(implicit
+    hc: HeaderCarrier, ec: ExecutionContext
+  ): Future[Option[CacheMap]] =
+    cachingVerbs.get(buildUri(source, cacheId)).map(Some(_)).recover {
       case UpstreamErrorResponse.WithStatusCode(404) => None
     }
 
@@ -88,7 +79,7 @@ trait HttpCaching extends CachingVerbs {
     cacheId: String,
     key    : String
   )(implicit
-    hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext
+    hc: HeaderCarrier, rds: Reads[T], ec: ExecutionContext
   ): Future[Option[T]] =
     fetch(source, cacheId).map(_.flatMap(_.getEntry[T](key)))
 
@@ -110,7 +101,7 @@ trait SessionCache extends HttpCaching {
     formId: String,
     body  : A
   )(implicit
-    wts: Writes[A], hc: HeaderCarrier, executionContext: ExecutionContext
+    wts: Writes[A], hc: HeaderCarrier, ec: ExecutionContext
   ): Future[CacheMap] =
     for {
       c      <- cacheId
@@ -118,7 +109,7 @@ trait SessionCache extends HttpCaching {
     } yield result
 
   def fetch()(
-    implicit hc: HeaderCarrier, executionContext: ExecutionContext
+    implicit hc: HeaderCarrier, ec: ExecutionContext
   ): Future[Option[CacheMap]] =
     for {
       c      <- cacheId
@@ -128,7 +119,7 @@ trait SessionCache extends HttpCaching {
   def fetchAndGetEntry[T](
     key: String
   )(implicit
-    hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext
+    hc: HeaderCarrier, rds: Reads[T], ec: ExecutionContext
   ): Future[Option[T]] =
     for {
       c      <- cacheId
@@ -136,11 +127,11 @@ trait SessionCache extends HttpCaching {
     } yield result
 
   def remove()(
-    implicit hc: HeaderCarrier, executionContext: ExecutionContext
-  ): Future[HttpResponse] =
+    implicit hc: HeaderCarrier, ec: ExecutionContext
+  ): Future[Unit] =
     for {
       c      <- cacheId
-      result <- delete(buildUri(defaultSource, c))
+      result <- cachingVerbs.delete(buildUri(defaultSource, c))
     } yield result
 }
 
@@ -151,17 +142,17 @@ trait ShortLivedHttpCaching extends HttpCaching {
 
   def cache[A](
     cacheId: String,
-    formId: String,
-    body: A
+    formId : String,
+    body   : A
   )(implicit
-    hc: HeaderCarrier, wts: Writes[A], executionContext: ExecutionContext
+    hc: HeaderCarrier, wts: Writes[A], ec: ExecutionContext
   ): Future[CacheMap] =
     cache(defaultSource, cacheId, formId, body)
 
   def fetch(
     cacheId: String
   )(implicit
-    hc: HeaderCarrier, executionContext: ExecutionContext
+    hc: HeaderCarrier, ec: ExecutionContext
   ): Future[Option[CacheMap]] =
     fetch(defaultSource, cacheId)
 
@@ -169,14 +160,43 @@ trait ShortLivedHttpCaching extends HttpCaching {
     cacheId: String,
     key    : String
   )(implicit
-    hc: HeaderCarrier, rds: Reads[T], executionContext: ExecutionContext
+    hc: HeaderCarrier, rds: Reads[T], ec: ExecutionContext
   ): Future[Option[T]] =
     fetchAndGetEntry(defaultSource, cacheId, key)
 
   def remove(
     cacheId: String
   )(implicit
-    hc: HeaderCarrier, executionContext: ExecutionContext
-  ): Future[HttpResponse] =
-    delete(buildUri(defaultSource, cacheId))
+    hc: HeaderCarrier, ec: ExecutionContext
+  ): Future[Unit] =
+    cachingVerbs.delete(buildUri(defaultSource, cacheId))
+}
+
+
+//abstraction for mocking
+trait CachingVerbs {
+
+  def get(uri: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[CacheMap]
+
+  def put[T](uri: String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], ec: ExecutionContext): Future[CacheMap]
+
+  def delete(uri: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit]
+}
+
+class DefaultCachingVerbs(httpClientV2: HttpClientV2) extends CachingVerbs {
+  import play.api.libs.ws.writeableOf_JsValue
+
+  import uk.gov.hmrc.http.HttpReads.Implicits._
+  private val legacyRawReads: HttpReads[HttpResponse] =
+    throwOnFailure(readEitherOf(readRaw))
+
+  def get(uri: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[CacheMap] =
+    httpClientV2.get(new URL(uri)).execute[CacheMap]
+
+  def put[T](uri : String, body: T)(implicit hc: HeaderCarrier, wts: Writes[T], ec: ExecutionContext): Future[CacheMap] =
+    httpClientV2.put(new URL(uri)).withBody(Json.toJson(body)).execute[CacheMap]
+
+  def delete(uri: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] =
+    httpClientV2.delete(new URL(uri)).execute[HttpResponse](legacyRawReads, implicitly[ExecutionContext])
+      .map(_ => ())
 }

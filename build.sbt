@@ -1,9 +1,13 @@
 val scala2_13 = "2.13.12"
 val scala3    = "3.3.3"
 
-ThisBuild / majorVersion     := 11
+ThisBuild / majorVersion     := 12
 ThisBuild / isPublicArtefact := true
 ThisBuild / scalaVersion     := scala2_13
+
+// Disable multiple project tests running at the same time
+// https://www.scala-sbt.org/1.x/docs/Parallel-Execution.html
+Global / concurrentRestrictions += Tags.limitSum(1, Tags.Test, Tags.Untagged)
 
 lazy val library = (project in file("."))
   .settings(publish / skip := true)

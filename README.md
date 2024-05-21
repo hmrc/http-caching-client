@@ -97,6 +97,14 @@ When a user session reliant upon a ```ShortLivedCache``` instance ends, a delete
 
 ## Changes
 
+### Version 12.0.0
+- Cross built for Scala 3 and 2.13. Scala 2.12 has been dropped.
+- Uses `HttpClientV2`.
+
+  Note, if testing custom implementations of `HttpCaching`, `CachingVerbs` is more appropriate to mock rather than the `HttpClientV2`.
+
+- `remove` functions return `Future[Unit]` instead of `Future[HttpResponse]`. Failures are still propagated as failed Futures with `UpstreamErrorResponse`  .
+
 ### Version 11.0.0
 - Built for Play 2.8, 2.9 and 3.0.
 - There are specific artefacts for each version of play. The version does not include the play version any more.
