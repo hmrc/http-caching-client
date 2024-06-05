@@ -19,7 +19,7 @@ package uk.gov.hmrc.http.cache.client
 import play.api.libs.json._
 import uk.gov.hmrc.crypto.json.JsonEncryption
 import uk.gov.hmrc.crypto.{Decrypter, Encrypter, Sensitive}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -73,7 +73,7 @@ trait ShortLivedCache {
         throw CachingException(s"Failed to fetch a decrypted entry by cacheId:$cacheId and key:$key", e)
     }
 
-  def remove(cacheId: String)(implicit hc: HeaderCarrier, executionContext: ExecutionContext): Future[HttpResponse] =
+  def remove(cacheId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Unit] =
     shortLiveCache.remove(cacheId)
 }
 
