@@ -62,7 +62,6 @@ trait HttpCaching {
     wts: Writes[A], hc: HeaderCarrier, ec: ExecutionContext
   ): Future[CacheMap] =
     cachingVerbs.put[A](buildUri(source, cacheId) + s"/data/$formId", body)
-      .map { res => println(s"put($source, $cacheId, $formId, $body) returns $res"); res }
 
   def fetch(
     source : String,
